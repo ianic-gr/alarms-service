@@ -1,22 +1,14 @@
 package rules
 
-import gr.ianic.model.AmrMeasurement;
-import gr.ianic.kafka.KafkaProducerService;
+dialect "mvel"
+dialect "java"
 
-global KafkaProducerService kafkaProducer;
+import gr.ianic.model.measurements.AmrMeasurement;
 
-rule "Detect Power Low Alarm"
+rule "Detect invalid measurement"
 when
-    $m : AmrMeasurement( power_low == 1 )
+    $m : AmrMeasurement( getValid() < 1 ) from entry-point "AlarmStream"
 then
-    String message = "Power low detected for meter: " + $m.getMeterAddress();
-    kafkaProducer.sendMessage(message);
-end
-
-rule "Detect Leakage"
-when
-    $m : AmrMeasurement( leakage == 1 )
-then
-    String message = "Leakage detected for meter: " + $m.getMeterAddress();
-    kafkaProducer.sendMessage(message);
+    String message = "invalid measurement from meter: " + $m.getMeterAddress();
+    System.out.println(message);
 end

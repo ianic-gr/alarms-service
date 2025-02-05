@@ -1,14 +1,11 @@
-package gr.ianic.model;
+package gr.ianic.model.measurements;
 
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSetter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.kie.api.definition.type.Role;
-import org.kie.api.definition.type.Timestamp;
 
 @Role(Role.Type.EVENT)
-@Timestamp("reading_date")
 public class AmrMeasurement {
 
 
@@ -322,12 +319,12 @@ public class AmrMeasurement {
     }
 
     @JsonGetter("reading_date")
-    public String getReadingDate() {
+    public String getReading_date() {
         return reading_date;
     }
 
     @JsonSetter("reading_date")
-    public void setReadingDate(String reading_date) {
+    public void setReading_date(String reading_date) {
         this.reading_date = reading_date;
     }
 
