@@ -27,25 +27,44 @@ public class SimpleRuleStream {
     RulesDao rulesDao;
 
     private KieSession kieSession;
+
     @Inject
     KafkaProducerService kafkaProducerService;
 
     private KieBaseConfiguration config;
+    private KieBase kieBase;
 
 
     private final static ObjectMapper mapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
 
-    /*
-    public void loadRules(String tenant, String name) {
-        rulesDao.findByTenantAndType(tenant, name);
+    public void reloadRules(String tenant) {
+        System.out.println("Reloading rules for " + tenant);
+        Rule rule = rulesDao.getByTenantAndType(tenant, "stream");
+
+        System.out.println("Loading rule: " + rule);
+        KieHelper kieHelper = new KieHelper();
+        kieHelper.addContent(rule.getRule(), ResourceType.DRL);
+
+        // Dispose the old session
+        if (kieSession != null) {
+            kieSession.halt();
+            kieSession.dispose();
+        }
+
+        // Build KieBase with configuration
+        kieBase = kieHelper.build(config);
+
+        // Create session
+        kieSession = kieBase.newKieSession();
+
+        startRuleEngine();
     }
-    */
 
     @PostConstruct
     public void init() {
-        Rule rule = rulesDao.findByTenantAndType("testTenant", "stream");
+        Rule rule = rulesDao.getByTenantAndType("testTenant", "stream");
 
         System.out.println(rule.getRule());
 
@@ -58,16 +77,18 @@ public class SimpleRuleStream {
 
 
         KieHelper kieHelper = new KieHelper();
+        /*
         kieHelper.addResource(kieServices.getResources()
                 .newClassPathResource("rules/alarm-rules.drl"), ResourceType.DRL);
+        */
 
+        kieHelper.addContent(rule.getRule(), ResourceType.DRL);
 
         // Build KieBase with configuration
-        KieBase kieBase = kieHelper.build(config);
+        kieBase = kieHelper.build(config);
 
         // Create session
         kieSession = kieBase.newKieSession();
-        kieSession.setGlobal("kafkaProducer", kafkaProducerService);
 
         startRuleEngine();
     }
@@ -79,10 +100,9 @@ public class SimpleRuleStream {
 
     @Incoming("measurements")
     public void consumeAlarmMessage(String message) {
-        AmrMeasurement m = null;
+        AmrMeasurement m;
         try {
             m = mapper.readValue(message, AmrMeasurement.class);
-            //System.out.println("Received alarm message: {" + m.getReading_date() + ", " + m.getMeterAddress() + ", " + m.getVolume() + "}");
             kieSession.getEntryPoint("AlarmStream").insert(m);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);

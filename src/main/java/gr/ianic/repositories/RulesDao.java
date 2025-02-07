@@ -21,5 +21,5 @@ public interface RulesDao {
     void delete(Rule rule);
 
     @Query("SELECT * FROM rules WHERE type = :type and tenant = :tenant")
-    Rule findByTenantAndType(String tenant, String type);
+    Rule getByTenantAndType(String tenant, String type);
 }

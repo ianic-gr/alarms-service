@@ -1,17 +1,22 @@
 package gr.ianic.model.rules;
 
+import com.datastax.oss.driver.api.mapper.annotations.ClusteringColumn;
 import com.datastax.oss.driver.api.mapper.annotations.CqlName;
 import com.datastax.oss.driver.api.mapper.annotations.Entity;
+import com.datastax.oss.driver.api.mapper.annotations.PartitionKey;
 
 @Entity(defaultKeyspace = "rules_keyspace")
 @CqlName("rules")
 public class Rule {
+    @PartitionKey(0)
     @CqlName("tenant")
     String tenant;
+    @ClusteringColumn
     @CqlName("name")
     String name;
     @CqlName("description")
     String description;
+    @PartitionKey(1)
     @CqlName("type")
     String type;
     @CqlName("rule")
