@@ -21,16 +21,19 @@ public class Rule {
     String type;
     @CqlName("rule")
     String rule;
+    @CqlName("source")
+    String source;
 
     public Rule() {
     }
 
-    public Rule(String tenant, String name, String description, String type, String rule) {
+    public Rule(String tenant, String source, String name, String description, String type, String rule) {
         this.tenant = tenant;
         this.name = name;
         this.description = description;
         this.type = type;
         this.rule = rule;
+        this.source = source;
     }
 
     public String getTenant() {
@@ -71,5 +74,13 @@ public class Rule {
 
     public void setRule(String rule) {
         this.rule = rule;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
     }
 }

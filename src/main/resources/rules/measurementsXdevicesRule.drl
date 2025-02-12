@@ -1,0 +1,13 @@
+import gr.ianic.model.WaterMeter
+import gr.ianic.model.measurements.AmrMeasurement
+
+dialect  "mvel"
+dialect "java"
+
+rule "Detect high consumption on inactive meter"
+when
+    $device: WaterMeter(getStatus() != "ACTIVE") from entry-point "metersEntry"
+    $measurement: AmrMeasurement(getVolume() > 1000, getMeterAddress() == $device.getCode()) from entry-point "AlarmStream"
+then
+    System.out.println("🚨 Alert! High consumption detected on inactive meter: " + $device.getCode());
+end
