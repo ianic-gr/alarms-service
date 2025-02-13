@@ -16,25 +16,42 @@ import org.kie.internal.utils.KieHelper;
 
 import java.util.List;
 
+/**
+ * A session class for managing stream-based rule evaluation using Drools.
+ * This class initializes and manages a Drools session for processing measurements in real-time.
+ */
 public class StreamSession extends Session {
 
-    private KieSession kieSession;
-    private KieBaseConfiguration config;
-    private KieBase kieBase;
-    private KieServices kieServices;
+    private KieSession kieSession; // Drools session for rule evaluation
+    private KieBaseConfiguration config; // Configuration for the Drools KieBase
+    private KieBase kieBase; // Drools KieBase containing the rules
+    private KieServices kieServices; // Drools services for creating configurations and sessions
 
-    private Rule rule;
-    private String tenant;
-    private String source;
+    private Rule rule; // The rule associated with this session
+    private String tenant; // The tenant identifier for this session
+    private String source; // The source identifier for this session
 
+    /**
+     * Default constructor.
+     */
     public StreamSession() {
     }
 
+    /**
+     * Parameterized constructor for creating a session with a specific tenant and source.
+     *
+     * @param tenant The tenant identifier for the session.
+     * @param source The source identifier for the session.
+     */
     public StreamSession(String tenant, String source) {
         this.tenant = tenant;
         this.source = source;
     }
 
+    /**
+     * Reloads the rules for this session.
+     * This method fetches the latest rules from the database and reinitializes the Drools session.
+     */
     public void reloadRules() {
         System.out.println("Reloading rules for " + tenant);
         rule = rulesDao.getByTenantAndType(tenant, "stream");
@@ -49,61 +66,79 @@ public class StreamSession extends Session {
         // Build KieBase with configuration
         kieBase = kieHelper.build(config);
 
-        // Create session
+        // Create a new session
         kieSession = kieBase.newKieSession();
 
         startRulesEngine();
     }
 
+    /**
+     * Initializes the session by loading rules, configuring Drools, and starting the rule engine.
+     */
     @Override
     protected void init() {
+        loadRules(); // Load the rules for the session
         kieServices = KieServices.Factory.get();
 
         config = kieServices.newKieBaseConfiguration();
-        config.setOption(EventProcessingOption.STREAM);
+        config.setOption(EventProcessingOption.STREAM); // Configure Drools for event processing
 
         KieHelper kieHelper = new KieHelper();
         kieHelper.addContent(rule.getRule(), ResourceType.DRL);
 
-        kieBase = kieHelper.build(config);
+        kieBase = kieHelper.build(config); // Build the KieBase
+        kieSession = kieBase.newKieSession(); // Create a new session
 
-        kieSession = kieBase.newKieSession();
-
+        // Insert initial data (water meters) into the session
         List<WaterMeter> meters = getMeters(tenant);
-        for (WaterMeter meter : meters)
+        for (WaterMeter meter : meters) {
             kieSession.getEntryPoint("metersEntry").insert(meter);
+        }
 
-        startRulesEngine();
+        startRulesEngine(); // Start the rule engine
     }
 
+    /**
+     * Consumes a measurement message from a Kafka topic and inserts it into the Drools session.
+     *
+     * @param message The JSON message containing the measurement data.
+     */
     @Incoming("measurements")
     public void consumeAlarmMessage(String message) {
         AmrMeasurement m;
         try {
-            m = mapper.readValue(message, AmrMeasurement.class);
-            kieSession.getEntryPoint(source).insert(m);
+            m = mapper.readValue(message, AmrMeasurement.class); // Deserialize the message
+            kieSession.getEntryPoint(source).insert(m); // Insert the measurement into the session
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(e); // Handle deserialization errors
         }
     }
-
 
     // ===========================================================
     // ========== Implementation of abstract methods =============
     // ===========================================================
 
+    /**
+     * Loads the rules for this session from the database.
+     */
     @Override
     protected void loadRules() {
-        rule = getRules("testTenant", "stream");
+        rule = getRules(tenant, "stream");
         System.out.println(rule.getRule());
     }
 
+    /**
+     * Starts the Drools rule engine in a separate thread.
+     */
     @Override
     protected void startRulesEngine() {
         new Thread(kieSession::fireUntilHalt).start();
         System.out.println("Drools rule engine started...");
     }
 
+    /**
+     * Stops the Drools rule engine and disposes of the session.
+     */
     @Override
     @PreDestroy
     protected void stopRulesEngine() {
@@ -113,11 +148,4 @@ public class StreamSession extends Session {
             System.out.println("Drools rule engine stopped.");
         }
     }
-
-
-    // ===========================================================
-    // =================== Setters/Getters =======================
-    // ===========================================================
-
-
 }
