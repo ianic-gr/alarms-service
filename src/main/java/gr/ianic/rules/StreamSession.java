@@ -30,6 +30,7 @@ public class StreamSession extends Session {
 
     @Inject
     KafkaStreamsFactory kafkaStreamsFactory;
+
     private KieSession kieSession; // Drools session for rule evaluation
     private KieBaseConfiguration config; // Configuration for the Drools KieBase
     private KieBase kieBase; // Drools KieBase containing the rules
@@ -40,9 +41,6 @@ public class StreamSession extends Session {
     private final String tenant; // The tenant identifier for this session
     private final String source; // The source identifier for this session
     private final String sessionId;
-
-    @Inject
-    KafkaStreamsFactory streamsFactory;
 
 
     /**
@@ -69,14 +67,8 @@ public class StreamSession extends Session {
      */
     public void reloadRules() {
         System.out.println("Reloading rules for " + sessionId);
-        KieHelper kieHelper = new KieHelper();
 
-        rules = getRules(tenant, "stream");
-
-        for (Rule rule : rules) {
-            System.out.println("Loading rule: " + rule);
-            kieHelper.addContent(rule.getRule(), ResourceType.DRL);
-        }
+        this.loadRules();
 
         // Dispose the old session
         stopRulesEngine();
@@ -95,7 +87,7 @@ public class StreamSession extends Session {
      */
     @Override
     protected void init() {
-        KieHelper kieHelper = new KieHelper();
+        kieHelper = new KieHelper();
         for (Rule rule : rules) {
             System.out.println("Loading rule: " + rule);
             kieHelper.addContent(rule.getRule(), ResourceType.DRL);
@@ -108,21 +100,6 @@ public class StreamSession extends Session {
         startRulesEngine(); // Start the rule engine
     }
 
-    /**
-     * Consumes a measurement message from a Kafka topic and inserts it into the Drools session.
-     *
-     * @param message The JSON message containing the measurement data.
-     */
-    @Incoming("measurements")
-    public void consumeAlarmMessage(String message) {
-        AmrMeasurement m;
-        try {
-            m = mapper.readValue(message, AmrMeasurement.class); // Deserialize the message
-            kieSession.getEntryPoint(source).insert(m); // Insert the measurement into the session
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e); // Handle deserialization errors
-        }
-    }
 
     private void consumeFactsEvent() {
         StreamsBuilder builder = kafkaStreamsFactory.getBuilder();
