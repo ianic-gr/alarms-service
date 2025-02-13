@@ -1,8 +1,10 @@
 package gr.ianic.rules;
 
+import gr.ianic.model.rules.Rule;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -36,9 +38,8 @@ public class SessionFactory {
      * @param source The source identifier for the session.
      * @param tenant The tenant identifier for the session.
      */
-    public void createStreamSession(String source, String tenant) {
-        StreamSession streamSession = new StreamSession(source, tenant);
-        streamSession.init(); // Initialize the session
+    public void createStreamSession(String source, String tenant, List<Rule> rules) {
+        StreamSession streamSession = new StreamSession(source, tenant, rules);
         addStreamSession(source, tenant, streamSession); // Add the session to the map
     }
 
@@ -56,8 +57,8 @@ public class SessionFactory {
     /**
      * Adds a stream session to the map using a composite key of source and tenant.
      *
-     * @param source The source identifier for the session.
-     * @param tenant The tenant identifier for the session.
+     * @param source  The source identifier for the session.
+     * @param tenant  The tenant identifier for the session.
      * @param session The stream session to add.
      */
     private void addStreamSession(String source, String tenant, StreamSession session) {
@@ -78,8 +79,8 @@ public class SessionFactory {
     /**
      * Adds a scheduled session to the map using a composite key of source and tenant.
      *
-     * @param source The source identifier for the session.
-     * @param tenant The tenant identifier for the session.
+     * @param source  The source identifier for the session.
+     * @param tenant  The tenant identifier for the session.
      * @param session The scheduled session to add.
      */
     private void addScheduledSession(String source, String tenant, ScheduledSession session) {

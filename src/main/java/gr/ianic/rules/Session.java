@@ -31,10 +31,10 @@ public abstract class Session {
      * Fetches the rules for the given tenant and type.
      *
      * @param tenant The tenant identifier.
-     * @param type The type of rules to fetch (e.g., "stream").
-     * @return The rule associated with the tenant and type.
+     * @param type   The type of rules to fetch (e.g., "stream").
+     * @return The rules associated with the tenant and type.
      */
-    public Rule getRules(String tenant, String type) {
+    public List<Rule> getRules(String tenant, String type) {
         return rulesDao.getByTenantAndType(tenant, type);
     }
 
