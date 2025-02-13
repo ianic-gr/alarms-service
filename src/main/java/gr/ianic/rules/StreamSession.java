@@ -1,17 +1,14 @@
 package gr.ianic.rules;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import gr.ianic.kafka.KafkaStreamsFactory;
 import gr.ianic.kafka.serdes.CustomSerdes;
 import gr.ianic.model.WaterMeter;
-import gr.ianic.model.measurements.AmrMeasurement;
 import gr.ianic.model.rules.Rule;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Consumed;
-import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.kie.api.KieBase;
 import org.kie.api.KieBaseConfiguration;
 import org.kie.api.KieServices;
@@ -101,7 +98,7 @@ public class StreamSession extends Session {
     }
 
 
-    private void consumeFactsEvent() {
+    private void consumeEventFacts() {
         StreamsBuilder builder = kafkaStreamsFactory.getBuilder();
 
         builder.stream(tenant + "-" + source, Consumed.with(Serdes.String(), CustomSerdes.AmrSerde()))
@@ -138,7 +135,7 @@ public class StreamSession extends Session {
     protected void startRulesEngine() {
         loadEntitiesFacts();
         new Thread(kieSession::fireUntilHalt).start();
-        consumeFactsEvent();
+        consumeEventFacts();
         System.out.println("Drools rule engine started...");
     }
 
