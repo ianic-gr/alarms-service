@@ -21,6 +21,7 @@ public class Rule {
     String type;
     @CqlName("rule")
     String rule;
+    @PartitionKey(2)
     @CqlName("source")
     String source;
 

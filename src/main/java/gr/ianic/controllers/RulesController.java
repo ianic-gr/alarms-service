@@ -4,19 +4,17 @@ import gr.ianic.model.rules.Rule;
 import gr.ianic.repositories.daos.RulesDao;
 import gr.ianic.rules.SessionFactory;
 import gr.ianic.rules.StreamSession;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 
 
-@Singleton
+@ApplicationScoped
 @Path("/rules")
 public class RulesController {
-    @Inject
-    StreamSession ruleStream;
 
     @Inject
     RulesDao rulesDao;

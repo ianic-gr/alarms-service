@@ -93,8 +93,6 @@ public class StreamSession extends Session {
         config.setOption(EventProcessingOption.STREAM); // Configure Drools for event processing
         kieBase = kieHelper.build(config); // Build the KieBase
         kieSession = kieBase.newKieSession(); // Create a new session
-
-        startRulesEngine(); // Start the rule engine
     }
 
 
@@ -120,7 +118,7 @@ public class StreamSession extends Session {
      */
     @Override
     protected void loadRules() {
-        rules = getRules(tenant, "stream");
+        rules = getRules(tenant, "stream", source);
         kieHelper = new KieHelper();
         for (Rule rule : rules) {
             System.out.println("Loading rule: " + rule);

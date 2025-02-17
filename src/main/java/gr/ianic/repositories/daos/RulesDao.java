@@ -18,7 +18,10 @@ public interface RulesDao {
     @Delete
     void delete(Rule rule);
 
-    @Query("SELECT * FROM rules WHERE type = :type and tenant = :tenant")
-    List<Rule> getByTenantAndType(String tenant, String type);
+    @Query("SELECT * FROM rules WHERE type = :type and tenant = :tenant and source = :source")
+    List<Rule> getByTenantTypeAndSource(String tenant, String type, String source);
 
+
+    @Query("SELECT * FROM rules WHERE type = :type ALLOW FILTERING")
+    List<Rule> getByType(String type);
 }

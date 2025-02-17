@@ -40,6 +40,7 @@ public class SessionFactory {
      */
     public void createStreamSession(String source, String tenant, List<Rule> rules) {
         StreamSession streamSession = new StreamSession(source, tenant, rules);
+        streamSession.startRulesEngine();
         addStreamSession(source, tenant, streamSession); // Add the session to the map
     }
 
