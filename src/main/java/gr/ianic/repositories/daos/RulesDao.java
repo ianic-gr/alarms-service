@@ -1,10 +1,13 @@
 package gr.ianic.repositories.daos;
 
 
+import com.datastax.oss.driver.api.core.PagingIterable;
 import com.datastax.oss.driver.api.mapper.annotations.*;
 import gr.ianic.model.rules.Rule;
 
+
 import java.util.List;
+import java.util.concurrent.CompletionStage;
 
 
 @Dao
@@ -19,9 +22,8 @@ public interface RulesDao {
     void delete(Rule rule);
 
     @Query("SELECT * FROM rules WHERE type = :type and tenant = :tenant and source = :source")
-    List<Rule> getByTenantTypeAndSource(String tenant, String type, String source);
-
+    PagingIterable<Rule> getByTenantTypeAndSource(String tenant, String type, String source);
 
     @Query("SELECT * FROM rules WHERE type = :type ALLOW FILTERING")
-    List<Rule> getByType(String type);
+    PagingIterable<Rule> getByType(String type);
 }

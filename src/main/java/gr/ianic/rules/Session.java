@@ -9,6 +9,7 @@ import gr.ianic.services.WaterMeterService;
 import jakarta.inject.Inject;
 
 import java.util.List;
+import java.util.concurrent.CompletionStage;
 
 /**
  * An abstract base class for managing sessions.
@@ -35,7 +36,7 @@ public abstract class Session {
      * @return The rules associated with the tenant and type.
      */
     public List<Rule> getRules(String tenant, String type, String source) {
-        return rulesDao.getByTenantTypeAndSource(tenant, type, source);
+        return rulesDao.getByTenantTypeAndSource(tenant, type, source).all();
     }
 
     /**

@@ -26,7 +26,7 @@ public class StreamApp {
 
     @PostConstruct
     public void init() {
-        rules = rulesDao.getByType("stream");
+        rules = rulesDao.getByType("stream").all();
 
         // Grouping rules by tenant and then by source
         Map<String, Map<String, List<Rule>>> groupedRules = rules.stream()
