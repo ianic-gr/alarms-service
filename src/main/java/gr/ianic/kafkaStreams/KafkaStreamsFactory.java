@@ -1,6 +1,8 @@
-package gr.ianic.kafka;
+package gr.ianic.kafkaStreams;
 
+import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 
@@ -18,6 +20,11 @@ public class KafkaStreamsFactory {
 
     // A thread-safe map to store Kafka Streams instances, keyed by session ID.
     private final Map<String, KafkaStreams> streamsSessions = new ConcurrentHashMap<>();
+
+    @Inject
+    private KafkaStreamsFactory() {
+        // Private constructor to enforce singleton pattern
+    }
 
     /**
      * Creates and returns a new {@link StreamsBuilder} instance.
@@ -37,18 +44,16 @@ public class KafkaStreamsFactory {
      * @param builder   The {@link StreamsBuilder} containing the topology for the Kafka Stream.
      */
     public void startStream(String sessionId, StreamsBuilder builder) {
-        // Configure Kafka Streams properties
-        Properties props = getProperties(sessionId);
-
-        // Create a new KafkaStreams instance with the provided topology and properties
-        KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), props);
-
-        // Store the KafkaStreams instance in the sessions map
-        streamsSessions.put(sessionId, kafkaStreams);
-
-        // Start the Kafka Stream
-        kafkaStreams.start();
-        System.out.println("Started Kafka Stream for session: " + sessionId);
+        try {
+            Properties props = getProperties(sessionId);
+            KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), props);
+            streamsSessions.put(sessionId, kafkaStreams);
+            kafkaStreams.start();
+            System.out.println("Started Kafka Stream for session: " + sessionId);
+        } catch (Exception e) {
+            System.err.println("Failed to start Kafka Stream for session: " + sessionId);
+            e.printStackTrace();
+        }
     }
 
     private static Properties getProperties(String sessionId) {
@@ -75,5 +80,14 @@ public class KafkaStreamsFactory {
             streams.close();
             System.out.println("Stopped Kafka Stream for session: " + sessionId);
         }
+    }
+
+    @PreDestroy
+    public void cleanup() {
+        streamsSessions.forEach((sessionId, streams) -> {
+            streams.close();
+            System.out.println("Closed Kafka Stream for session: " + sessionId);
+        });
+        streamsSessions.clear();
     }
 }

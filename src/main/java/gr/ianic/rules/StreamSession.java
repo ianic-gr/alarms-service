@@ -1,11 +1,13 @@
 package gr.ianic.rules;
 
-import gr.ianic.kafka.KafkaStreamsFactory;
-import gr.ianic.kafka.serdes.CustomSerdes;
+import gr.ianic.kafkaStreams.KafkaStreamsFactory;
+import gr.ianic.kafkaStreams.serdes.CustomSerdes;
 import gr.ianic.model.WaterMeter;
 import gr.ianic.model.rules.Rule;
+import gr.ianic.repositories.daos.RulesDao;
+import gr.ianic.services.KafkaProducerService;
+import gr.ianic.services.WaterMeterService;
 import jakarta.annotation.PreDestroy;
-import jakarta.inject.Inject;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Consumed;
@@ -25,8 +27,11 @@ import java.util.List;
  */
 public class StreamSession extends Session {
 
-    @Inject
-    KafkaStreamsFactory kafkaStreamsFactory;
+
+    protected KafkaProducerService kafkaProducerService;
+    protected KafkaStreamsFactory kafkaStreamsFactory;
+    protected WaterMeterService waterMeterService;
+    protected RulesDao rulesDao;
 
     private KieSession kieSession; // Drools session for rule evaluation
     private KieBaseConfiguration config; // Configuration for the Drools KieBase
@@ -46,10 +51,10 @@ public class StreamSession extends Session {
      * @param tenant The tenant identifier for the session.
      * @param source The source identifier for the session.
      */
-    public StreamSession(String tenant, String source, List<Rule> rules) {
+    protected StreamSession(String tenant, String source, List<Rule> rules) {
         this.tenant = tenant;
         this.source = source;
-        this.sessionId = tenant + "-" + source;
+        this.sessionId = source + "-" + tenant;
         this.rules = rules;
 
         kieServices = KieServices.Factory.get();
@@ -93,14 +98,21 @@ public class StreamSession extends Session {
         config.setOption(EventProcessingOption.STREAM); // Configure Drools for event processing
         kieBase = kieHelper.build(config); // Build the KieBase
         kieSession = kieBase.newKieSession(); // Create a new session
+        kieSession.setGlobal("kafkaProducer", kafkaProducerService);
+
     }
 
 
     private void consumeEventFacts() {
         StreamsBuilder builder = kafkaStreamsFactory.getBuilder();
 
-        builder.stream(tenant + "-" + source, Consumed.with(Serdes.String(), CustomSerdes.AmrSerde()))
-                .foreach((k, m) -> kieSession.getEntryPoint(source).insert(m));
+        builder.stream(source + "-" + tenant, Consumed.with(Serdes.String(), CustomSerdes.AmrSerde()))
+                .foreach((k, m) -> {
+                    if (kieSession.getEntryPoint(source) == null)
+                        System.out.println("There is no entrypoint with name: " + source);
+                    else
+                        kieSession.getEntryPoint(source).insert(m);
+                });
 
         kafkaStreamsFactory.startStream(sessionId, builder);
     }
@@ -131,7 +143,22 @@ public class StreamSession extends Session {
      */
     @Override
     protected void startRulesEngine() {
+        kieSession.setGlobal("kafkaProducer", kafkaProducerService);
         loadEntitiesFacts();
+
+        // Add an event listener to capture rule firings
+       /*kieSession.addEventListener(new DefaultAgendaEventListener() {
+            @Override
+            public void afterMatchFired(AfterMatchFiredEvent event) {
+                // Check if an Alarm fact was inserted
+                kieSession.getObjects(o -> o instanceof Alarm).forEach(obj -> {
+                    Alarm message = (Alarm) obj;
+                    kafkaProducerService.sendMessage(message.getTopic(), message.getKey(), message.getMessage());
+                    kieSession.delete(kieSession.getFactHandle(message)); // Remove fact after sending
+                });
+            }
+        });*/
+
         new Thread(kieSession::fireUntilHalt).start();
         consumeEventFacts();
         System.out.println("Drools rule engine started...");
@@ -149,5 +176,26 @@ public class StreamSession extends Session {
             kafkaStreamsFactory.stopStream(sessionId);
             System.out.println("Drools rule engine stopped.");
         }
+    }
+
+    /**
+     * Fetches the rules for the given tenant and type.
+     *
+     * @param tenant The tenant identifier.
+     * @param type   The type of rules to fetch (e.g., "stream").
+     * @return The rules associated with the tenant and type.
+     */
+    public List<Rule> getRules(String tenant, String type, String source) {
+        return rulesDao.getByTenantTypeAndSource(tenant, type, source).all();
+    }
+
+    /**
+     * Fetches the water meters for the given tenant.
+     *
+     * @param tenant The tenant identifier.
+     * @return A list of water meters associated with the tenant.
+     */
+    public List<WaterMeter> getMeters(String tenant) {
+        return waterMeterService.getWaterMetersByTenant(tenant).await().indefinitely();
     }
 }

@@ -1,8 +1,8 @@
-package gr.ianic.kafka.serdes;
+package gr.ianic.kafkaStreams.serdes;
 
 
-import gr.ianic.kafka.deserializers.JsonPojoDeserializer;
-import gr.ianic.kafka.serializers.JsonPojoSerializer;
+import gr.ianic.kafkaStreams.deserializers.JsonPojoDeserializer;
+import gr.ianic.kafkaStreams.serializers.JsonPojoSerializer;
 import gr.ianic.model.measurements.AmrMeasurement;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;

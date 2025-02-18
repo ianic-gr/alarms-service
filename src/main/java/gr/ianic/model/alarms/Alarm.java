@@ -23,5 +23,11 @@ public interface Alarm {
 
     void setCount(Integer count);
 
+    public String getTopic();
+
+    public String getKey();
+
+    public void setKey(String key);
+
     String toString();
 }

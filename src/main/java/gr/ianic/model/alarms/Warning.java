@@ -10,6 +10,7 @@ public class Warning implements Alarm {
     private String message;
     private Long datetime;
     private Integer count;
+    private String key;
 
     public Warning() {
         count = 0;
@@ -68,6 +69,21 @@ public class Warning implements Alarm {
     @Override
     public void setCount(Integer count) {
         this.count = count;
+    }
+
+    @Override
+    public String getTopic() {
+        return "warning-alarms";
+    }
+
+    @Override
+    public String getKey() {
+        return key;
+    }
+
+    @Override
+    public void setKey(String key) {
+        this.key = key;
     }
 
     @Override

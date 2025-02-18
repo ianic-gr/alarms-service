@@ -1,8 +1,13 @@
 package gr.ianic.rules;
 
+import gr.ianic.kafkaStreams.KafkaStreamsFactory;
 import gr.ianic.model.rules.Rule;
+import gr.ianic.repositories.daos.RulesDao;
+import gr.ianic.services.KafkaProducerService;
+import gr.ianic.services.WaterMeterService;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import java.util.List;
 import java.util.Map;
@@ -16,6 +21,19 @@ import java.util.concurrent.ConcurrentHashMap;
 @ApplicationScoped
 public class SessionFactory {
 
+    @Inject
+    RulesDao rulesDao; // Data access object for fetching rules
+
+    @Inject
+    WaterMeterService waterMeterService; // Service for fetching water meters
+
+    @Inject
+    KafkaStreamsFactory kafkaStreamsFactory;
+
+    @Inject
+    KafkaProducerService kafkaProducerService;
+
+
     // Thread-safe map to store active stream sessions, keyed by a combination of source and tenant.
     private Map<String, StreamSession> streamSessions;
 
@@ -27,7 +45,7 @@ public class SessionFactory {
      * This method is automatically called by the container after dependency injection.
      */
     @PostConstruct
-    public void init() {
+    private void init() {
         streamSessions = new ConcurrentHashMap<>();
         scheduledSessions = new ConcurrentHashMap<>();
     }
@@ -39,7 +57,11 @@ public class SessionFactory {
      * @param tenant The tenant identifier for the session.
      */
     public void createStreamSession(String source, String tenant, List<Rule> rules) {
-        StreamSession streamSession = new StreamSession(source, tenant, rules);
+        StreamSession streamSession = new StreamSession(tenant, source, rules);
+        streamSession.rulesDao = rulesDao;
+        streamSession.waterMeterService = waterMeterService;
+        streamSession.kafkaStreamsFactory = kafkaStreamsFactory;
+        streamSession.kafkaProducerService = kafkaProducerService;
         streamSession.startRulesEngine();
         addStreamSession(source, tenant, streamSession); // Add the session to the map
     }
@@ -98,4 +120,6 @@ public class SessionFactory {
     public ScheduledSession getScheduledSession(String source, String tenant) {
         return scheduledSessions.get(source + "-" + tenant);
     }
+
+
 }

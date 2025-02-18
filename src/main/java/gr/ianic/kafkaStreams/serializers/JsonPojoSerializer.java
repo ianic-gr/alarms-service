@@ -1,4 +1,4 @@
-package gr.ianic.kafka.serializers;
+package gr.ianic.kafkaStreams.serializers;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;

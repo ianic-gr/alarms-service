@@ -8,7 +8,7 @@ import com.datastax.oss.driver.api.mapper.annotations.PartitionKey;
 @Entity(defaultKeyspace = "rules_keyspace")
 @CqlName("rules")
 public class Rule {
-    @PartitionKey(0)
+    @PartitionKey()
     @CqlName("tenant")
     String tenant;
     @ClusteringColumn
@@ -83,5 +83,17 @@ public class Rule {
 
     public void setSource(String source) {
         this.source = source;
+    }
+
+    @Override
+    public String toString() {
+        return "Rule{" +
+                "tenant='" + tenant + '\'' +
+                ", name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", type='" + type + '\'' +
+                ", rule='" + rule + '\'' +
+                ", source='" + source + '\'' +
+                '}';
     }
 }

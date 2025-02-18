@@ -16,8 +16,8 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class StreamApp {
 
-    //@Inject
-    //SessionFactory sessionFactory;
+    @Inject
+    SessionFactory sessionFactory;
 
     @Inject
     RulesDao rulesDao;
@@ -38,6 +38,7 @@ public class StreamApp {
             System.out.println("Tenant: " + tenant);
             sourceMap.forEach((source, ruleList) -> {
                 System.out.println("  Source: " + source);
+                sessionFactory.createStreamSession(source, tenant, ruleList);
                 ruleList.forEach(rule -> System.out.println("    Rule: " + rule.getName()));
             });
         });
