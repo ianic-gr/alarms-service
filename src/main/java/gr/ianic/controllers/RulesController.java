@@ -3,7 +3,6 @@ package gr.ianic.controllers;
 import gr.ianic.model.rules.Rule;
 import gr.ianic.repositories.daos.RulesDao;
 import gr.ianic.rules.SessionFactory;
-import gr.ianic.rules.StreamSession;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;

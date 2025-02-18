@@ -6,10 +6,6 @@ import com.datastax.oss.driver.api.mapper.annotations.*;
 import gr.ianic.model.rules.Rule;
 
 
-import java.util.List;
-import java.util.concurrent.CompletionStage;
-
-
 @Dao
 public interface RulesDao {
     @Insert
