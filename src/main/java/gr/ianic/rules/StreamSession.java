@@ -20,6 +20,7 @@ import org.kie.api.runtime.KieSession;
 import org.kie.internal.utils.KieHelper;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * A session class for managing stream-based rule evaluation using Drools.
@@ -41,20 +42,20 @@ public class StreamSession extends Session {
 
     private List<Rule> rules; // The rule associated with this session
     private final String tenant; // The tenant identifier for this session
-    private final String source; // The source identifier for this session
+    private final Set<String> entryPoints; // The entryPoints identifier for this session
     private final String sessionId;
 
 
     /**
-     * Parameterized constructor for creating a session with a specific tenant and source.
+     * Parameterized constructor for creating a session with a specific tenant and entryPoints.
      *
-     * @param tenant The tenant identifier for the session.
-     * @param source The source identifier for the session.
+     * @param tenant      The tenant identifier for the session.
+     * @param entryPoints The entryPoints identifier for the session.
      */
-    protected StreamSession(String tenant, String source, List<Rule> rules) {
+    protected StreamSession(String tenant, Set<String> entryPoints, List<Rule> rules) {
         this.tenant = tenant;
-        this.source = source;
-        this.sessionId = source + "-" + tenant;
+        this.entryPoints = entryPoints;
+        this.sessionId = entryPoints + "-" + tenant;
         this.rules = rules;
 
         kieServices = KieServices.Factory.get();
@@ -92,7 +93,7 @@ public class StreamSession extends Session {
         kieHelper = new KieHelper();
         for (Rule rule : rules) {
             System.out.println("Loading rule: " + rule);
-            kieHelper.addContent(rule.getRule(), ResourceType.DRL);
+            kieHelper.addContent(rule.getDrl(), ResourceType.DRL);
         }
 
         config.setOption(EventProcessingOption.STREAM); // Configure Drools for event processing
@@ -104,15 +105,17 @@ public class StreamSession extends Session {
 
 
     private void consumeEventFacts() {
-        StreamsBuilder builder = kafkaStreamsFactory.getBuilder();
+        StreamsBuilder builder = kafkaStreamsFactory.getNewBuilder();
 
-        builder.stream(source + "-" + tenant, Consumed.with(Serdes.String(), CustomSerdes.AmrSerde()))
+        entryPoints.forEach((entryPoint) ->
+                builder.stream(entryPoints + "-" + tenant, Consumed.with(Serdes.String(), CustomSerdes.AmrSerde()))
                 .foreach((k, m) -> {
-                    if (kieSession.getEntryPoint(source) == null)
-                        System.out.println("There is no entrypoint with name: " + source);
+                    if (kieSession.getEntryPoint(entryPoint) == null)
+                        System.out.println("There is no entrypoint with name: " + entryPoint);
                     else
-                        kieSession.getEntryPoint(source).insert(m);
-                });
+                        kieSession.getEntryPoint(entryPoint).insert(m);
+                }));
+
 
         kafkaStreamsFactory.startStream(sessionId, builder);
     }
@@ -130,11 +133,11 @@ public class StreamSession extends Session {
      */
     @Override
     protected void loadRules() {
-        rules = getRules(tenant, "stream", source);
+        rules = getRules(tenant, "stream");
         kieHelper = new KieHelper();
         for (Rule rule : rules) {
             System.out.println("Loading rule: " + rule);
-            kieHelper.addContent(rule.getRule(), ResourceType.DRL);
+            kieHelper.addContent(rule.getDrl(), ResourceType.DRL);
         }
     }
 
@@ -185,8 +188,8 @@ public class StreamSession extends Session {
      * @param type   The type of rules to fetch (e.g., "stream").
      * @return The rules associated with the tenant and type.
      */
-    public List<Rule> getRules(String tenant, String type, String source) {
-        return rulesDao.getByTenantTypeAndSource(tenant, type, source).all();
+    public List<Rule> getRules(String tenant, String type) {
+        return rulesDao.getByTenantAndMode(tenant, type).all();
     }
 
     /**

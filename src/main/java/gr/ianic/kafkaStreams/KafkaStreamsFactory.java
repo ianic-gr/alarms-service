@@ -32,7 +32,7 @@ public class KafkaStreamsFactory {
      *
      * @return A new {@link StreamsBuilder} instance.
      */
-    public StreamsBuilder getBuilder() {
+    public StreamsBuilder getNewBuilder() {
         return new StreamsBuilder();
     }
 

@@ -11,6 +11,7 @@ import jakarta.inject.Inject;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -53,17 +54,16 @@ public class SessionFactory {
     /**
      * Creates and initializes a new stream session for the given source and tenant.
      *
-     * @param source The source identifier for the session.
      * @param tenant The tenant identifier for the session.
      */
-    public void createStreamSession(String source, String tenant, List<Rule> rules) {
-        StreamSession streamSession = new StreamSession(tenant, source, rules);
+    public void createStreamSession(Set<String> entryPoints, String tenant, List<Rule> rules) {
+        StreamSession streamSession = new StreamSession(tenant, entryPoints, rules);
         streamSession.rulesDao = rulesDao;
         streamSession.waterMeterService = waterMeterService;
         streamSession.kafkaStreamsFactory = kafkaStreamsFactory;
         streamSession.kafkaProducerService = kafkaProducerService;
         streamSession.startRulesEngine();
-        addStreamSession(source, tenant, streamSession); // Add the session to the map
+        addStreamSession(tenant, streamSession); // Add the session to the map
     }
 
     /**
@@ -80,45 +80,41 @@ public class SessionFactory {
     /**
      * Adds a stream session to the map using a composite key of source and tenant.
      *
-     * @param source  The source identifier for the session.
      * @param tenant  The tenant identifier for the session.
      * @param session The stream session to add.
      */
-    private void addStreamSession(String source, String tenant, StreamSession session) {
-        this.streamSessions.put(source + "-" + tenant, session);
+    private void addStreamSession(String tenant, StreamSession session) {
+        this.streamSessions.put(tenant, session);
     }
 
     /**
      * Retrieves a stream session for the given source and tenant.
      *
-     * @param source The source identifier for the session.
      * @param tenant The tenant identifier for the session.
      * @return The stream session associated with the source and tenant, or null if not found.
      */
-    public StreamSession getStreamSession(String source, String tenant) {
-        return streamSessions.get(source + "-" + tenant);
+    public StreamSession getStreamSession(String tenant) {
+        return streamSessions.get(tenant);
     }
 
     /**
      * Adds a scheduled session to the map using a composite key of source and tenant.
      *
-     * @param source  The source identifier for the session.
      * @param tenant  The tenant identifier for the session.
      * @param session The scheduled session to add.
      */
-    private void addScheduledSession(String source, String tenant, ScheduledSession session) {
-        this.scheduledSessions.put(source + "-" + tenant, session);
+    private void addScheduledSession( String tenant, ScheduledSession session) {
+        this.scheduledSessions.put(tenant, session);
     }
 
     /**
      * Retrieves a scheduled session for the given source and tenant.
      *
-     * @param source The source identifier for the session.
      * @param tenant The tenant identifier for the session.
      * @return The scheduled session associated with the source and tenant, or null if not found.
      */
-    public ScheduledSession getScheduledSession(String source, String tenant) {
-        return scheduledSessions.get(source + "-" + tenant);
+    public ScheduledSession getScheduledSession(String tenant) {
+        return scheduledSessions.get(tenant);
     }
 
 

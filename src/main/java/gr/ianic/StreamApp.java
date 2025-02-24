@@ -26,21 +26,17 @@ public class StreamApp {
 
     @PostConstruct
     public void init() {
-        rules = rulesDao.getByType("stream").all();
+        rules = rulesDao.getByMode("stream").all();
 
         // Grouping rules by tenant and then by source
-        Map<String, Map<String, List<Rule>>> groupedRules = rules.stream()
-                .collect(Collectors.groupingBy(Rule::getTenant,
-                        Collectors.groupingBy(Rule::getSource)));
+       Map<String, List<Rule>> groupedRules = rules.stream()
+                .collect(Collectors.groupingBy(Rule::getTenant));
 
         // Now we can access rules like groupedRules.get("tenant1").get("source1")
-        groupedRules.forEach((tenant, sourceMap) -> {
+        groupedRules.forEach((tenant, ruleList) -> {
             System.out.println("Tenant: " + tenant);
-            sourceMap.forEach((source, ruleList) -> {
-                System.out.println("  Source: " + source);
                 sessionFactory.createStreamSession(source, tenant, ruleList);
                 ruleList.forEach(rule -> System.out.println("    Rule: " + rule.getName()));
-            });
         });
     }
 

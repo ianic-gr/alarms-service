@@ -9,7 +9,7 @@ import gr.ianic.model.rules.Rule;
 @Dao
 public interface RulesDao {
     @Insert
-    void instert(Rule rule);
+    void insert(Rule rule);
 
     @Update
     void update(Rule rule);
@@ -17,9 +17,9 @@ public interface RulesDao {
     @Delete
     void delete(Rule rule);
 
-    @Query("SELECT * FROM rules WHERE type = :type and tenant = :tenant and source = :source")
-    PagingIterable<Rule> getByTenantTypeAndSource(String tenant, String type, String source);
+    @Query("SELECT * FROM rules WHERE mode = :mode and tenant = :tenant")
+    PagingIterable<Rule> getByTenantAndMode(String tenant, String mode);
 
-    @Query("SELECT * FROM rules WHERE type = :type ALLOW FILTERING")
-    PagingIterable<Rule> getByType(String type);
+    @Query("SELECT * FROM rules WHERE mode = :mode ALLOW FILTERING")
+    PagingIterable<Rule> getByMode(String mode);
 }

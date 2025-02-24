@@ -11,3 +11,10 @@ when
 then
     System.out.println("🚨 Alert! High consumption detected on inactive meter: " + $device.getCode());
 end
+
+rule "Detect tamper"
+when
+    $measurement: AmrMeasurement(getTamper() == 0) from entry-point "AlarmStream"
+then
+    System.out.println("🔒🛠️ Alert! Detected tamper on measurement from meter: " + $measurement.getMeterAddress());
+end

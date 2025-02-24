@@ -34,7 +34,7 @@ public class RulesController {
     @Consumes(MediaType.APPLICATION_JSON)
     public Response addRules(@PathParam("tenant") String tenant, @RequestBody Rule rule) {
         rule.setTenant(tenant);
-        rulesDao.instert(rule);
+        rulesDao.insert(rule);
         return Response.ok("Rules added successfully").build();
     }
 }

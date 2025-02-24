@@ -5,36 +5,40 @@ import com.datastax.oss.driver.api.mapper.annotations.CqlName;
 import com.datastax.oss.driver.api.mapper.annotations.Entity;
 import com.datastax.oss.driver.api.mapper.annotations.PartitionKey;
 
+import java.util.Set;
+
 @Entity(defaultKeyspace = "rules_keyspace")
 @CqlName("rules")
 public class Rule {
     @PartitionKey()
     @CqlName("tenant")
     String tenant;
+    @PartitionKey(1)
+    @CqlName("mode")
+    String mode;
     @ClusteringColumn
     @CqlName("name")
     String name;
     @CqlName("description")
     String description;
-    @PartitionKey(1)
-    @CqlName("type")
-    String type;
-    @CqlName("rule")
-    String rule;
-    @PartitionKey(2)
-    @CqlName("source")
-    String source;
+    @CqlName("entryPoints")
+    Set<String> entryPoints;
+    @CqlName("entities")
+    Set<String> entities;
+    @CqlName("drl")
+    String drl;
 
     public Rule() {
     }
 
-    public Rule(String tenant, String source, String name, String description, String type, String rule) {
+    public Rule(String tenant, String mode, String name, String description, Set<String> entryPoints, Set<String> entities, String drl) {
         this.tenant = tenant;
+        this.mode = mode;
         this.name = name;
         this.description = description;
-        this.type = type;
-        this.rule = rule;
-        this.source = source;
+        this.entryPoints = entryPoints;
+        this.entities = entities;
+        this.drl = drl;
     }
 
     public String getTenant() {
@@ -43,6 +47,14 @@ public class Rule {
 
     public void setTenant(String tenant) {
         this.tenant = tenant;
+    }
+
+    public String getMode() {
+        return mode;
+    }
+
+    public void setMode(String mode) {
+        this.mode = mode;
     }
 
     public String getName() {
@@ -61,39 +73,40 @@ public class Rule {
         this.description = description;
     }
 
-    public String getType() {
-        return type;
+    public Set<String> getEntryPoints() {
+        return entryPoints;
     }
 
-    public void setType(String type) {
-        this.type = type;
+    public void setEntryPoints(Set<String> entryPoints) {
+        this.entryPoints = entryPoints;
     }
 
-    public String getRule() {
-        return rule;
+    public Set<String> getEntities() {
+        return entities;
     }
 
-    public void setRule(String rule) {
-        this.rule = rule;
+    public void setEntities(Set<String> entities) {
+        this.entities = entities;
     }
 
-    public String getSource() {
-        return source;
+    public String getDrl() {
+        return drl;
     }
 
-    public void setSource(String source) {
-        this.source = source;
+    public void setDrl(String drl) {
+        this.drl = drl;
     }
 
     @Override
     public String toString() {
         return "Rule{" +
-                "tenant='" + tenant + '\'' +
-                ", name='" + name + '\'' +
-                ", description='" + description + '\'' +
-                ", type='" + type + '\'' +
-                ", rule='" + rule + '\'' +
-                ", source='" + source + '\'' +
+                "tenant:'" + tenant + '\'' +
+                ", mode:'" + mode + '\'' +
+                ", name:'" + name + '\'' +
+                ", description:'" + description + '\'' +
+                ", entryPoints:" + entryPoints +
+                ", entities:" + entities +
+                ", drl:'" + drl + '\'' +
                 '}';
     }
 }
