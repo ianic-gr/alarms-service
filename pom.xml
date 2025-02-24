@@ -78,6 +78,10 @@
             <artifactId>kafka-streams</artifactId>
             <version>3.6.0</version>  <!-- Adjust to match your Kafka version -->
         </dependency>
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
