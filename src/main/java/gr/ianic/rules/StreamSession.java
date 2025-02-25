@@ -29,21 +29,18 @@ import java.util.Set;
 public class StreamSession extends Session {
 
 
+    private final String tenant; // The tenant identifier for this session
+    private final String sessionId;
+    private final KieBaseConfiguration config; // Configuration for the Drools KieBase
     protected KafkaProducerService kafkaProducerService;
     protected KafkaStreamsFactory kafkaStreamsFactory;
     protected WaterMeterService waterMeterService;
     protected RulesDao rulesDao;
-
+    private Set<String> entryPoints; // The entryPoints identifier for this session
     private KieSession kieSession; // Drools session for rule evaluation
-    private KieBaseConfiguration config; // Configuration for the Drools KieBase
     private KieBase kieBase; // Drools KieBase containing the rules
-    private KieServices kieServices; // Drools services for creating configurations and sessions
     private KieHelper kieHelper;
-
     private List<Rule> rules; // The rule associated with this session
-    private final String tenant; // The tenant identifier for this session
-    private final Set<String> entryPoints; // The entryPoints identifier for this session
-    private final String sessionId;
 
 
     /**
@@ -58,7 +55,8 @@ public class StreamSession extends Session {
         this.sessionId = entryPoints + "-" + tenant;
         this.rules = rules;
 
-        kieServices = KieServices.Factory.get();
+        // Drools services for creating configurations and sessions
+        KieServices kieServices = KieServices.Factory.get();
         config = kieServices.newKieBaseConfiguration();
 
         this.init();
@@ -68,10 +66,16 @@ public class StreamSession extends Session {
      * Reloads the rules for this session.
      * This method fetches the latest rules from the database and reinitializes the Drools session.
      */
-    public void reloadRules() {
+    protected void reloadRules(Set<String> entryPoints, List<Rule> rules) {
         System.out.println("Reloading rules for " + sessionId);
 
-        this.loadRules();
+        this.rules = rules;
+        this.entryPoints = entryPoints;
+
+        for (Rule rule : rules) {
+            System.out.println("Loading rule: " + rule);
+            kieHelper.addContent(rule.getDrl(), ResourceType.DRL);
+        }
 
         // Dispose the old session
         stopRulesEngine();
@@ -109,12 +113,12 @@ public class StreamSession extends Session {
 
         entryPoints.forEach((entryPoint) ->
                 builder.stream(entryPoints + "-" + tenant, Consumed.with(Serdes.String(), CustomSerdes.AmrSerde()))
-                .foreach((k, m) -> {
-                    if (kieSession.getEntryPoint(entryPoint) == null)
-                        System.out.println("There is no entrypoint with name: " + entryPoint);
-                    else
-                        kieSession.getEntryPoint(entryPoint).insert(m);
-                }));
+                        .foreach((k, m) -> {
+                            if (kieSession.getEntryPoint(entryPoint) == null)
+                                System.out.println("There is no entrypoint with name: " + entryPoint);
+                            else
+                                kieSession.getEntryPoint(entryPoint).insert(m);
+                        }));
 
 
         kafkaStreamsFactory.startStream(sessionId, builder);
@@ -128,18 +132,6 @@ public class StreamSession extends Session {
         }
     }
 
-    /**
-     * Loads the rules for this session from the database.
-     */
-    @Override
-    protected void loadRules() {
-        rules = getRules(tenant, "stream");
-        kieHelper = new KieHelper();
-        for (Rule rule : rules) {
-            System.out.println("Loading rule: " + rule);
-            kieHelper.addContent(rule.getDrl(), ResourceType.DRL);
-        }
-    }
 
     /**
      * Starts the Drools rule engine in a separate thread.
@@ -181,16 +173,6 @@ public class StreamSession extends Session {
         }
     }
 
-    /**
-     * Fetches the rules for the given tenant and type.
-     *
-     * @param tenant The tenant identifier.
-     * @param type   The type of rules to fetch (e.g., "stream").
-     * @return The rules associated with the tenant and type.
-     */
-    public List<Rule> getRules(String tenant, String type) {
-        return rulesDao.getByTenantAndMode(tenant, type).all();
-    }
 
     /**
      * Fetches the water meters for the given tenant.

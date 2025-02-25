@@ -24,8 +24,4 @@ public abstract class Session {
      */
     protected abstract void init();
 
-    /**
-     * Loads the rules for the session.
-     */
-    protected abstract void loadRules();
 }

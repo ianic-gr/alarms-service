@@ -2,7 +2,7 @@ package gr.ianic;
 
 import gr.ianic.model.rules.Rule;
 import gr.ianic.repositories.daos.RulesDao;
-import gr.ianic.rules.SessionFactory;
+import gr.ianic.rules.SessionManager;
 import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -16,7 +16,7 @@ import java.util.*;
 public class StreamApp {
 
     @Inject
-    SessionFactory sessionFactory;
+    SessionManager sessionManager;
 
     @Inject
     RulesDao rulesDao;
@@ -28,13 +28,11 @@ public class StreamApp {
     public void init() {
         rules = rulesDao.getByMode("stream").all();
 
-        // Grouping rules by tenant and then by source
         Map<String, AbstractMap.SimpleEntry<Set<String>, List<Rule>>> organizedRules = organizeRules(rules);
 
-        // Now we can access rules like groupedRules.get("tenant1").get("source1")
         organizedRules.forEach((tenant, erTuple) -> {
             System.out.println("Tenant: " + tenant);
-            sessionFactory.createStreamSession(erTuple.getKey(), tenant, erTuple.getValue());
+            sessionManager.createStreamSession(erTuple.getKey(), tenant, erTuple.getValue());
             erTuple.getValue().forEach(rule -> System.out.println("    Rule: " + rule.getName()));
         });
     }

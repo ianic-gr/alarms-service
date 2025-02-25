@@ -2,7 +2,7 @@ package gr.ianic.controllers;
 
 import gr.ianic.model.rules.Rule;
 import gr.ianic.repositories.daos.RulesDao;
-import gr.ianic.rules.SessionFactory;
+import gr.ianic.rules.SessionManager;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -19,12 +19,12 @@ public class RulesController {
     RulesDao rulesDao;
 
     @Inject
-    SessionFactory sessionFactory;
+    SessionManager sessionManager;
 
     @PUT
-    @Path("/reload/{tenant}/{source}")
-    public Response reloadRules(@PathParam("tenant") String tenant, @PathParam("source") String source) {
-        sessionFactory.getStreamSession(tenant, source).reloadRules();
+    @Path("/reload/{tenant}")
+    public Response reloadRules(@PathParam("tenant") String tenant) {
+        sessionManager.reloadRulesForStreamSession(tenant);
         return Response.ok("Rules reloaded successfully").build();
     }
 
