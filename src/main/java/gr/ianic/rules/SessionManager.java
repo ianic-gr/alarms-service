@@ -192,7 +192,7 @@ public class SessionManager {
         return result;
     }
 
-    protected Map<String, AbstractMap.SimpleEntry<Set<String>, List<Rule>>> organizeRules(List<Rule> rules) {
+    public Map<String, AbstractMap.SimpleEntry<Set<String>, List<Rule>>> organizeRules(List<Rule> rules) {
         Map<String, Map<String, List<Rule>>> tenantMap = organizeRulesByTenantAndEntrypoint(rules);
         return flattenTenantRules(tenantMap);
     }

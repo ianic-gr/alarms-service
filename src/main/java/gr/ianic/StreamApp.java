@@ -7,7 +7,6 @@ import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
@@ -28,7 +27,7 @@ public class StreamApp {
     public void init() {
         rules = rulesDao.getByMode("stream").all();
 
-        Map<String, AbstractMap.SimpleEntry<Set<String>, List<Rule>>> organizedRules = organizeRules(rules);
+        Map<String, AbstractMap.SimpleEntry<Set<String>, List<Rule>>> organizedRules = sessionManager.organizeRules(rules);
 
         organizedRules.forEach((tenant, erTuple) -> {
             System.out.println("Tenant: " + tenant);
@@ -37,56 +36,5 @@ public class StreamApp {
         });
     }
 
-    public Map<String, Map<String, List<Rule>>> organizeRulesByTenantAndEntrypoint(@NotNull List<Rule> rules) {
-        // Map to store the result
-        Map<String, Map<String, List<Rule>>> tenantMap = new HashMap<>();
-
-        for (Rule rule : rules) {
-            String tenant = rule.getTenant();
-            Set<String> entrypoints = rule.getEntryPoints();
-
-            // If the tenant is not already in the map, add them
-            tenantMap.putIfAbsent(tenant, new HashMap<>());
-
-            // Get the map of entry points to rules for the current tenant
-            Map<String, List<Rule>> entrypointMap = tenantMap.get(tenant);
-
-            // Iterate through each entrypoint and add the rule to the corresponding list
-            for (String entrypoint : entrypoints) {
-                entrypointMap.putIfAbsent(entrypoint, new ArrayList<>());
-                entrypointMap.get(entrypoint).add(rule);
-            }
-        }
-
-        return tenantMap;
-    }
-
-    public Map<String, AbstractMap.SimpleEntry<Set<String>, List<Rule>>> flattenTenantRules(@NotNull Map<String, Map<String, List<Rule>>> tenantMap) {
-        Map<String, AbstractMap.SimpleEntry<Set<String>, List<Rule>>> result = new HashMap<>();
-
-        for (Map.Entry<String, Map<String, List<Rule>>> tenantEntry : tenantMap.entrySet()) {
-            String tenant = tenantEntry.getKey();
-            Map<String, List<Rule>> entrypointMap = tenantEntry.getValue();
-
-            // Collect all unique entry points
-            Set<String> allEntrypoints = new HashSet<>(entrypointMap.keySet());
-
-            // Collect all rules (flattened)
-            List<Rule> allRules = new ArrayList<>();
-            for (List<Rule> rules : entrypointMap.values()) {
-                allRules.addAll(rules);
-            }
-
-            // Add to the result map
-            result.put(tenant, new AbstractMap.SimpleEntry<>(allEntrypoints, allRules));
-        }
-
-        return result;
-    }
-
-    public Map<String, AbstractMap.SimpleEntry<Set<String>, List<Rule>>> organizeRules(List<Rule> rules) {
-        Map<String, Map<String, List<Rule>>> tenantMap = organizeRulesByTenantAndEntrypoint(rules);
-        return flattenTenantRules(tenantMap);
-    }
 
 }
