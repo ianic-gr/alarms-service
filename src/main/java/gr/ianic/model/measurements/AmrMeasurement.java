@@ -5,70 +5,79 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import org.kie.api.definition.type.Role;
 
+/**
+ * Represents an AMR (Automatic Meter Reading) measurement.
+ * This class includes fields for status, identifiers, volume, and debug information.
+ * It is annotated as an event for use in rule engines.
+ */
 @Role(Role.Type.EVENT)
 public class AmrMeasurement {
 
+    // ========================== Status Fields ==========================
 
-    // status fields
-    private Integer power_low;
-    private Integer hardware;
-    private Integer empty_spool;
-    private Integer reverse_flow;
-    private Integer leakage;
-    private Integer burst;
-    private Integer freeze;
-    private Integer tamper;
-    private Integer rssi;
-    private Double snr;
+    private Integer power_low; // Indicates low power status
+    private Integer hardware; // Indicates hardware issues
+    private Integer empty_spool; // Indicates empty spool status
+    private Integer reverse_flow; // Indicates reverse flow status
+    private Integer leakage; // Indicates leakage status
+    private Integer burst; // Indicates burst status
+    private Integer freeze; // Indicates freeze status
+    private Integer tamper; // Indicates tamper status
+    private Integer rssi; // Received Signal Strength Indicator
+    private Double snr; // Signal-to-Noise Ratio
 
+    private Integer valid = 1; // Indicates if the measurement is valid
+    private long noMeasurementDays = 0; // Number of days without measurements
 
-    private Integer valid = 1;
-    private long noMeasurementDays = 0;
+    // ================== First Error Occurrence Dates ==================
 
+    private String first_power_low_occurrence; // First occurrence of low power
+    private String first_hardware_occurrence; // First occurrence of hardware issues
+    private String first_empty_spool_occurrence; // First occurrence of empty spool
+    private String first_reverse_flow_occurrence; // First occurrence of reverse flow
+    private String first_leakage_occurrence; // First occurrence of leakage
+    private String first_burst_occurrence; // First occurrence of burst
+    private String first_freeze_occurrence; // First occurrence of freeze
+    private String first_tamper_occurrence; // First occurrence of tamper
 
-    // first error occurrence date
-    private String first_power_low_occurrence;
-    private String first_hardware_occurrence;
-    private String first_empty_spool_occurrence;
-    private String first_reverse_flow_occurrence;
-    private String first_leakage_occurrence;
-    private String first_burst_occurrence;
-    private String first_freeze_occurrence;
-    private String first_tamper_occurrence;
+    // ====================== Identifier Fields ======================
 
+    private String meter_address; // Address of the meter
+    private String reading_date; // Date of the reading
+    private String telegram; // Raw telegram data
+    private String gateway_id; // ID of the gateway
+    private String filename; // Name of the file
+    private String source; // Source of the measurement
+    private String operator_latitude; // Latitude of the operator
+    private String operator_longitude; // Longitude of the operator
+    private String notes; // Additional notes
+    private String routelist_id; // ID of the routelist
+    private String user_id; // ID of the user
 
-    // identifier fields
-    private String meter_address;
-    private String reading_date;
-    private String telegram;
-    private String gateway_id;
-    private String filename;
-    private String source;
-    private String operator_latitude;
-    private String operator_longitude;
-    private String notes;
-    private String routelist_id;
-    private String user_id;
+    // ====================== Volume Fields ======================
 
-    // volume field
-    private Long volume;
-    private Long consumption;
-    private Long summarizedConsumption;
+    private Long volume; // Volume measurement
+    private Long consumption; // Consumption measurement
+    private Long summarizedConsumption; // Summarized consumption
 
+    // ====================== Debug Fields ======================
 
-    // debug
-    private Integer wasFirst = 0;
-    private Integer negativeDelta = 0;
-    private Integer outOfOrder = 0;
-    private int isSimulated = 0;
-    private int isApproximation = 0;
-    private int isNovelty = 0;
-    private Integer last;
+    private Integer wasFirst = 0; // Indicates if this is the first measurement
+    private Integer negativeDelta = 0; // Indicates negative delta in measurements
+    private Integer outOfOrder = 0; // Indicates out-of-order measurements
+    private int isSimulated = 0; // Indicates if the measurement is simulated
+    private int isApproximation = 0; // Indicates if the measurement is an approximation
+    private int isNovelty = 0; // Indicates if the measurement is a novelty
+    private Integer last; // Indicates if this is the last measurement
 
+    /**
+     * Default constructor.
+     */
     public AmrMeasurement() {
     }
 
-    /* Setters/Getters */
+    // ====================== Getters and Setters ======================
+
     @JsonGetter("isSimulated")
     public int isSimulated() {
         return isSimulated;
@@ -92,7 +101,6 @@ public class AmrMeasurement {
     public int isNovelty() {
         return isNovelty;
     }
-
 
     public void setNovelty(int novelty) {
         isNovelty = novelty;
