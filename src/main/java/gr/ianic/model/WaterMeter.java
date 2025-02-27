@@ -9,42 +9,53 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.Locale;
 
+/**
+ * Represents a water meter with properties such as serial number, client ID, location, and status.
+ * This class is used to model water meter data and supports JSON serialization and deserialization.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class WaterMeter {
 
+    // Jackson ObjectMapper for JSON serialization and deserialization
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    private String serialNumber;
-    private String clientId;
-    private String code;
-    private String udrometro;
-    private String oldHydrometer;
-    private String kwdikosKatanalwti;
-    private String radioAddress;
-    private String geoLocation;
-    private Double latitude;
-    private Double longitude;
-    private String appId;
-    private String sectorId;
-    private String removalIndication;
-    private String length;
-    private String diameter;
-    private String type;
-    private String manufacturer;
-    private String model;
-    private String encryptionKey;
-    private String encryptionProtocol;
-    private String address;
-    private String contact;
-    private String status;
-    private LocalDateTime date;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    // ====================== Fields ======================
 
+    private String serialNumber; // Serial number of the water meter
+    private String clientId; // Client ID associated with the water meter
+    private String code; // Code of the water meter
+    private String udrometro; // Udrometro field (specific to the application)
+    private String oldHydrometer; // Old hydrometer identifier
+    private String kwdikosKatanalwti; // Consumer code (specific to the application)
+    private String radioAddress; // Radio address of the water meter
+    private String geoLocation; // Geographical location of the water meter
+    private Double latitude; // Latitude of the water meter's location
+    private Double longitude; // Longitude of the water meter's location
+    private String appId; // Application ID associated with the water meter
+    private String sectorId; // Sector ID of the water meter
+    private String removalIndication; // Indication of removal status
+    private String length; // Length of the water meter
+    private String diameter; // Diameter of the water meter
+    private String type; // Type of the water meter
+    private String manufacturer; // Manufacturer of the water meter
+    private String model; // Model of the water meter
+    private String encryptionKey; // Encryption key for the water meter
+    private String encryptionProtocol; // Encryption protocol used by the water meter
+    private String address; // Address of the water meter
+    private String contact; // Contact information for the water meter
+    private String status; // Status of the water meter
+    private LocalDateTime date; // Date associated with the water meter
+    private LocalDateTime createdAt; // Timestamp when the water meter was created
+    private LocalDateTime updatedAt; // Timestamp when the water meter was last updated
+
+    /**
+     * Default constructor.
+     */
     public WaterMeter() {
     }
 
-    // Getters and Setters with Jackson annotations
+    // ====================== Getters and Setters ======================
+
     @JsonGetter("serial_number")
     public String getSerialNumber() {
         return serialNumber;
@@ -272,7 +283,7 @@ public class WaterMeter {
 
     @JsonSetter("status")
     public void setStatus(String status) {
-        this.status = status.toUpperCase(Locale.ROOT);
+        this.status = status.toUpperCase(Locale.ROOT); // Ensure status is uppercase
     }
 
     @JsonGetter("date")
@@ -305,12 +316,18 @@ public class WaterMeter {
         this.updatedAt = updatedAt;
     }
 
+    /**
+     * Returns a JSON representation of the water meter.
+     *
+     * @return A JSON string representing the water meter.
+     * @throws RuntimeException If JSON serialization fails.
+     */
     @Override
     public String toString() {
         try {
             return mapper.writeValueAsString(this);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to serialize WaterMeter to JSON", e);
         }
     }
 }
