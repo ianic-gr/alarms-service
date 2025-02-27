@@ -30,8 +30,10 @@ public class StreamApp {
         Map<String, AbstractMap.SimpleEntry<Set<String>, List<Rule>>> organizedRules = sessionManager.organizeRules(rules);
 
         organizedRules.forEach((tenant, erTuple) -> {
-            System.out.println("Tenant: " + tenant);
-            sessionManager.createStreamSession(erTuple.getKey(), tenant, erTuple.getValue());
+            boolean created =  sessionManager.createStreamSession(erTuple.getKey(), tenant, erTuple.getValue());
+            if (!created) {
+                System.out.println("Create stream session failed");
+            }
             erTuple.getValue().forEach(rule -> System.out.println("    Rule: " + rule.getName()));
         });
     }

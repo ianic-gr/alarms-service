@@ -10,6 +10,10 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 
+import java.util.AbstractMap;
+import java.util.List;
+import java.util.Set;
+
 
 @ApplicationScoped
 @Path("/rules")
@@ -37,4 +41,40 @@ public class RulesController {
         rulesDao.insert(rule);
         return Response.ok("Rules added successfully").build();
     }
+
+    @POST
+    @Path("/session/{tenant}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response createSession(@PathParam("tenant") String tenant, @QueryParam("mode") String mode) {
+        if (mode == null || mode.isEmpty()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Query parameter 'mode' is required")
+                    .build();
+        }
+
+        List<Rule> rules = rulesDao.getByTenantAndMode(tenant, mode).all();
+
+        if (rules.isEmpty()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("No rules found for tenant " + tenant + " and mode " + mode)
+                    .build();
+        }
+
+        if (mode.equalsIgnoreCase("stream")) {
+            AbstractMap.SimpleEntry<Set<String>, List<Rule>> organizedRules = sessionManager.organizeSingleTenantRules(rules);
+
+            boolean sessionCreated = sessionManager.createStreamSession(organizedRules.getKey(), tenant, organizedRules.getValue());
+
+            if (sessionCreated) {
+                return Response.ok("Session created successfully for tenant: " + tenant + " with mode: " + mode).build();
+            } else {
+                return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity("Failed to create session for tenant: " + tenant)
+                        .build();
+            }
+        }
+
+        return Response.status(Response.Status.BAD_REQUEST).entity("Invalid mode").build();
+    }
+
 }
