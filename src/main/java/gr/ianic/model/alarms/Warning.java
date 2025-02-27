@@ -4,19 +4,33 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.util.Date;
 
+/**
+ * Represents a warning alarm with properties such as severity, message, timestamp, and count.
+ * This class implements the {@link Alarm} interface and provides specific behavior for warning alarms.
+ */
 public class Warning implements Alarm {
 
-    private Severity severity;
-    private String message;
-    private Long datetime;
-    private Integer count;
-    private String key;
+    private Severity severity; // The severity level of the warning
+    private String message; // The message associated with the warning
+    private Long datetime; // The timestamp of the warning
+    private Integer count; // The count of occurrences for the warning
+    private String key; // The key associated with the warning
 
+    /**
+     * Default constructor initializes the count to 0 and sets the timestamp to the current time.
+     */
     public Warning() {
         count = 0;
         datetime = new Date().getTime();
     }
 
+    /**
+     * Constructs a warning with the specified severity and message.
+     * The timestamp is set to the current time, and the count is initialized to 0.
+     *
+     * @param severity The severity level of the warning.
+     * @param message  The message associated with the warning.
+     */
     public Warning(Severity severity, String message) {
         this.severity = severity;
         this.message = message;
@@ -24,6 +38,14 @@ public class Warning implements Alarm {
         this.count = 0;
     }
 
+    /**
+     * Constructs a warning with the specified severity, message, and timestamp.
+     * The count is initialized to 0.
+     *
+     * @param severity The severity level of the warning.
+     * @param message  The message associated with the warning.
+     * @param datetime The timestamp of the warning.
+     */
     public Warning(Severity severity, String message, Long datetime) {
         this.severity = severity;
         this.message = message;
@@ -73,7 +95,7 @@ public class Warning implements Alarm {
 
     @Override
     public String getTopic() {
-        return "warning-alarms";
+        return "warning-alarms"; // The Kafka topic for warning alarms
     }
 
     @Override
@@ -86,12 +108,18 @@ public class Warning implements Alarm {
         this.key = key;
     }
 
+    /**
+     * Returns a JSON representation of the warning.
+     *
+     * @return A JSON string representing the warning.
+     * @throws RuntimeException If JSON serialization fails.
+     */
     @Override
     public String toString() {
         try {
             return mapper.writeValueAsString(this);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to serialize Warning to JSON", e);
         }
     }
 }
