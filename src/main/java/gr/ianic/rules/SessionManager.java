@@ -14,7 +14,10 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-
+/**
+ * Manages the creation, retrieval, and destruction of stream and scheduled sessions.
+ * This class is responsible for handling sessions for different tenants and modes.
+ */
 @ApplicationScoped
 public class SessionManager {
 
@@ -25,16 +28,15 @@ public class SessionManager {
     WaterMeterService waterMeterService; // Service for fetching water meters
 
     @Inject
-    KafkaStreamsFactory kafkaStreamsFactory;
+    KafkaStreamsFactory kafkaStreamsFactory; // Factory for creating Kafka Streams
 
     @Inject
-    KafkaProducerService kafkaProducerService;
+    KafkaProducerService kafkaProducerService; // Service for producing Kafka messages
 
-
-    // Thread-safe map to store active stream sessions, keyed by a combination of source and tenant.
+    // Thread-safe map to store active stream sessions, keyed by tenant.
     private Map<String, StreamSession> streamSessions;
 
-    // Thread-safe map to store active scheduled sessions, keyed by a combination of source and tenant.
+    // Thread-safe map to store active scheduled sessions, keyed by tenant.
     private Map<String, ScheduledSession> scheduledSessions;
 
     /**
@@ -47,15 +49,17 @@ public class SessionManager {
         scheduledSessions = new ConcurrentHashMap<>();
     }
 
-
     // ===================================================================================================================================
     // ========================================================= STREAM SESSION ==========================================================
     // ===================================================================================================================================
 
     /**
-     * Creates and initializes a new stream session for the given source and tenant.
+     * Creates and initializes a new stream session for the given tenant.
      *
-     * @param tenant The tenant identifier for the session.
+     * @param entryPoints The set of entry points for the session.
+     * @param tenant      The tenant identifier for the session.
+     * @param rules       The list of rules to be applied in the session.
+     * @return {@code true} if the session was created successfully, {@code false} otherwise.
      */
     public boolean createStreamSession(Set<String> entryPoints, String tenant, List<Rule> rules) {
         System.out.println("Creating stream session for tenant " + tenant + " with entry points " + entryPoints);
@@ -75,7 +79,7 @@ public class SessionManager {
     }
 
     /**
-     * Adds a stream session to the map using a composite key of source and tenant.
+     * Adds a stream session to the map using the tenant as the key.
      *
      * @param tenant  The tenant identifier for the session.
      * @param session The stream session to add.
@@ -85,15 +89,21 @@ public class SessionManager {
     }
 
     /**
-     * Retrieves a stream session for the given source and tenant.
+     * Retrieves a stream session for the given tenant.
      *
      * @param tenant The tenant identifier for the session.
-     * @return The stream session associated with the source and tenant, or null if not found.
+     * @return The stream session associated with the tenant, or {@code null} if not found.
      */
     public StreamSession getStreamSession(String tenant) {
         return streamSessions.get(tenant);
     }
 
+    /**
+     * Reloads the rules for a stream session associated with the given tenant.
+     * If no rules exist for the tenant, the session is destroyed.
+     *
+     * @param tenant The tenant identifier for the session.
+     */
     public void reloadRulesForStreamSession(String tenant) {
         StreamSession session = streamSessions.get(tenant);
         if (session != null) {
@@ -121,6 +131,11 @@ public class SessionManager {
         }
     }
 
+    /**
+     * Destroys the stream session for the given tenant.
+     *
+     * @param tenant The tenant identifier for the session.
+     */
     private void destroyStreamSession(String tenant) {
         StreamSession session = streamSessions.remove(tenant);
         if (session != null) {
@@ -128,7 +143,6 @@ public class SessionManager {
             System.out.println("Session destroyed for tenant: " + tenant);
         }
     }
-
 
     // ===================================================================================================================================
     // ======================================================== SCHEDULED SESSION ========================================================
@@ -146,7 +160,7 @@ public class SessionManager {
     }
 
     /**
-     * Adds a scheduled session to the map using a composite key of source and tenant.
+     * Adds a scheduled session to the map using the tenant as the key.
      *
      * @param tenant  The tenant identifier for the session.
      * @param session The scheduled session to add.
@@ -156,10 +170,10 @@ public class SessionManager {
     }
 
     /**
-     * Retrieves a scheduled session for the given source and tenant.
+     * Retrieves a scheduled session for the given tenant.
      *
      * @param tenant The tenant identifier for the session.
-     * @return The scheduled session associated with the source and tenant, or null if not found.
+     * @return The scheduled session associated with the tenant, or {@code null} if not found.
      */
     public ScheduledSession getScheduledSession(String tenant) {
         return scheduledSessions.get(tenant);
@@ -169,6 +183,13 @@ public class SessionManager {
     // ============================================================== RULES ==============================================================
     // ===================================================================================================================================
 
+    /**
+     * Organizes rules by tenant and entry point.
+     *
+     * @param rules The list of rules to organize.
+     * @return A map where the key is the tenant and the value is another map.
+     * The inner map's key is the entry point, and the value is the list of rules for that entry point.
+     */
     private @NotNull Map<String, Map<String, List<Rule>>> organizeRulesByTenantAndEntrypoint(@NotNull List<Rule> rules) {
         // Map to store the result
         Map<String, Map<String, List<Rule>>> tenantMap = new HashMap<>();
@@ -193,6 +214,14 @@ public class SessionManager {
         return tenantMap;
     }
 
+    /**
+     * Flattens the rules organized by tenant and entry point into a simpler structure.
+     *
+     * @param tenantMap The map of rules organized by tenant and entry point.
+     * @return A map where the key is the tenant and the value is a pair containing:
+     * - A set of all unique entry points for the tenant.
+     * - A list of all rules for the tenant.
+     */
     private @NotNull Map<String, AbstractMap.SimpleEntry<Set<String>, List<Rule>>> flattenTenantRules(@NotNull Map<String, Map<String, List<Rule>>> tenantMap) {
         Map<String, AbstractMap.SimpleEntry<Set<String>, List<Rule>>> result = new HashMap<>();
 
@@ -216,11 +245,27 @@ public class SessionManager {
         return result;
     }
 
+    /**
+     * Organizes rules by tenant and entry point, then flattens the structure.
+     *
+     * @param rules The list of rules to organize.
+     * @return A map where the key is the tenant and the value is a pair containing:
+     * - A set of all unique entry points for the tenant.
+     * - A list of all rules for the tenant.
+     */
     public Map<String, AbstractMap.SimpleEntry<Set<String>, List<Rule>>> organizeRules(List<Rule> rules) {
         Map<String, Map<String, List<Rule>>> tenantMap = organizeRulesByTenantAndEntrypoint(rules);
         return flattenTenantRules(tenantMap);
     }
 
+    /**
+     * Organizes rules for a single tenant.
+     *
+     * @param rules The list of rules to organize.
+     * @return A pair containing:
+     * - A set of all unique entry points for the tenant.
+     * - A list of all rules for the tenant.
+     */
     @Contract("_ -> new")
     public AbstractMap.@NotNull SimpleEntry<Set<String>, List<Rule>> organizeSingleTenantRules(@NotNull List<Rule> rules) {
         // Set to store all unique entry points
@@ -241,7 +286,4 @@ public class SessionManager {
         // Return the result as a Pair (or AbstractMap.SimpleEntry)
         return new AbstractMap.SimpleEntry<>(allEntrypoints, allRules);
     }
-
-
-
 }
