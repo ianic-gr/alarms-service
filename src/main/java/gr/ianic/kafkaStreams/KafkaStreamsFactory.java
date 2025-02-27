@@ -21,9 +21,11 @@ public class KafkaStreamsFactory {
     // A thread-safe map to store Kafka Streams instances, keyed by session ID.
     private final Map<String, KafkaStreams> streamsSessions = new ConcurrentHashMap<>();
 
+    /**
+     * Private constructor to enforce singleton pattern.
+     */
     @Inject
     private KafkaStreamsFactory() {
-        // Private constructor to enforce singleton pattern
     }
 
     /**
@@ -45,9 +47,16 @@ public class KafkaStreamsFactory {
      */
     public void startStream(String sessionId, StreamsBuilder builder) {
         try {
+            // Get properties for the Kafka Streams application
             Properties props = getProperties(sessionId);
+
+            // Create a new KafkaStreams instance with the provided topology and properties
             KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), props);
+
+            // Add the KafkaStreams instance to the active sessions map
             streamsSessions.put(sessionId, kafkaStreams);
+
+            // Start the Kafka Streams application
             kafkaStreams.start();
             System.out.println("Started Kafka Stream for session: " + sessionId);
         } catch (Exception e) {
@@ -56,6 +65,12 @@ public class KafkaStreamsFactory {
         }
     }
 
+    /**
+     * Generates the properties for the Kafka Streams application.
+     *
+     * @param sessionId The unique identifier for the session.
+     * @return A {@link Properties} object containing the configuration for the Kafka Streams application.
+     */
     private static Properties getProperties(String sessionId) {
         Properties props = new Properties();
         props.put("bootstrap.servers", "server1.ianic.gr:9094"); // Kafka broker address
@@ -82,12 +97,19 @@ public class KafkaStreamsFactory {
         }
     }
 
+    /**
+     * Cleans up all active Kafka Streams sessions when the application is destroyed.
+     * This method is automatically called by the container before the bean is destroyed.
+     */
     @PreDestroy
     public void cleanup() {
+        // Close all active Kafka Streams sessions
         streamsSessions.forEach((sessionId, streams) -> {
             streams.close();
             System.out.println("Closed Kafka Stream for session: " + sessionId);
         });
+
+        // Clear the sessions map
         streamsSessions.clear();
     }
 }
