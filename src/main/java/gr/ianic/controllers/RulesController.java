@@ -14,17 +14,26 @@ import java.util.AbstractMap;
 import java.util.List;
 import java.util.Set;
 
-
+/**
+ * REST controller for managing rules and sessions.
+ * This class provides endpoints for reloading rules, adding rules, and creating sessions for tenants.
+ */
 @ApplicationScoped
 @Path("/rules")
 public class RulesController {
 
     @Inject
-    RulesDao rulesDao;
+    RulesDao rulesDao; // Data access object for interacting with rules in the database
 
     @Inject
-    SessionManager sessionManager;
+    SessionManager sessionManager; // Manages stream and scheduled sessions
 
+    /**
+     * Reloads the rules for a stream session associated with the given tenant.
+     *
+     * @param tenant The tenant identifier for which to reload the rules.
+     * @return A response indicating the success or failure of the operation.
+     */
     @PUT
     @Path("/reload/{tenant}")
     public Response reloadRules(@PathParam("tenant") String tenant) {
@@ -32,6 +41,13 @@ public class RulesController {
         return Response.ok("Rules reloaded successfully").build();
     }
 
+    /**
+     * Adds a new rule for the specified tenant.
+     *
+     * @param tenant The tenant identifier for which to add the rule.
+     * @param rule   The rule to add.
+     * @return A response indicating the success or failure of the operation.
+     */
     @POST
     @Path("/{tenant}/")
     @Produces(MediaType.APPLICATION_JSON)
@@ -39,30 +55,43 @@ public class RulesController {
     public Response addRules(@PathParam("tenant") String tenant, @RequestBody Rule rule) {
         rule.setTenant(tenant);
         rulesDao.insert(rule);
-        return Response.ok("Rules added successfully").build();
+        return Response.ok("Rule added successfully").build();
     }
 
+    /**
+     * Creates a new session for the specified tenant and mode.
+     *
+     * @param tenant The tenant identifier for which to create the session.
+     * @param mode   The mode of the session (e.g., "stream").
+     * @return A response indicating the success or failure of the operation.
+     */
     @POST
     @Path("/session/{tenant}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response createSession(@PathParam("tenant") String tenant, @QueryParam("mode") String mode) {
+        // Validate the mode parameter
         if (mode == null || mode.isEmpty()) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("Query parameter 'mode' is required")
                     .build();
         }
 
+        // Fetch rules for the tenant and mode
         List<Rule> rules = rulesDao.getByTenantAndMode(tenant, mode).all();
 
+        // Check if rules exist for the tenant and mode
         if (rules.isEmpty()) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("No rules found for tenant " + tenant + " and mode " + mode)
                     .build();
         }
 
+        // Handle stream mode
         if (mode.equalsIgnoreCase("stream")) {
+            // Organize rules by entry points
             AbstractMap.SimpleEntry<Set<String>, List<Rule>> organizedRules = sessionManager.organizeSingleTenantRules(rules);
 
+            // Create a stream session
             boolean sessionCreated = sessionManager.createStreamSession(organizedRules.getKey(), tenant, organizedRules.getValue());
 
             if (sessionCreated) {
@@ -74,7 +103,7 @@ public class RulesController {
             }
         }
 
+        // Handle invalid mode
         return Response.status(Response.Status.BAD_REQUEST).entity("Invalid mode").build();
     }
-
 }
