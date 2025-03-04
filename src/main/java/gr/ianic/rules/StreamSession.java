@@ -52,7 +52,7 @@ public class StreamSession extends Session {
     protected StreamSession(String tenant, Set<String> entryPoints, List<Rule> rules) {
         this.tenant = tenant;
         this.entryPoints = entryPoints;
-        this.sessionId = entryPoints + "-" + tenant;
+        this.sessionId = tenant;
         this.rules = rules;
 
         // Drools services for creating configurations and sessions
@@ -112,7 +112,7 @@ public class StreamSession extends Session {
         StreamsBuilder builder = kafkaStreamsFactory.getNewBuilder();
 
         entryPoints.forEach((entryPoint) ->
-                builder.stream(entryPoints + "-" + tenant, Consumed.with(Serdes.String(), CustomSerdes.AmrSerde()))
+                builder.stream(entryPoint + "-" + tenant, Consumed.with(Serdes.String(), CustomSerdes.AmrSerde()))
                         .foreach((k, m) -> {
                             if (kieSession.getEntryPoint(entryPoint) == null)
                                 System.out.println("There is no entrypoint with name: " + entryPoint);
@@ -138,7 +138,7 @@ public class StreamSession extends Session {
      */
     @Override
     protected void startRulesEngine() {
-        kieSession.setGlobal("kafkaProducer", kafkaProducerService);
+        //kieSession.setGlobal("kafkaProducer", kafkaProducerService);
         loadEntitiesFacts();
 
         // Add an event listener to capture rule firings
