@@ -23,31 +23,31 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * A session class for managing stream-based rule evaluation using Drools.
- * This class initializes and manages a Drools session for processing measurements in real-time.
+ * Represents a session for processing rules in a streaming environment.
+ * This class extends the {@link Session} class and provides functionality
+ * to manage Drools rule sessions, Kafka Streams, and water meter data.
  */
 public class StreamSession extends Session {
 
-
     private final String tenant; // The tenant identifier for this session
-    private final String sessionId;
+    private final String sessionId; // Unique identifier for the session
     private final KieBaseConfiguration config; // Configuration for the Drools KieBase
-    protected KafkaProducerService kafkaProducerService;
-    protected KafkaStreamsFactory kafkaStreamsFactory;
-    protected WaterMeterService waterMeterService;
-    protected RulesDao rulesDao;
-    private Set<String> entryPoints; // The entryPoints identifier for this session
+    protected KafkaProducerService kafkaProducerService; // Service for producing Kafka messages
+    protected KafkaStreamsFactory kafkaStreamsFactory; // Factory for creating Kafka Streams
+    protected WaterMeterService waterMeterService; // Service for fetching water meter data
+    protected RulesDao rulesDao; // Data Access Object for rules
+    private Set<String> entryPoints; // Entry points for the session
     private KieSession kieSession; // Drools session for rule evaluation
     private KieBase kieBase; // Drools KieBase containing the rules
-    private KieHelper kieHelper;
-    private List<Rule> rules; // The rule associated with this session
-
+    private KieHelper kieHelper; // Helper for building KieBase
+    private List<Rule> rules; // List of rules associated with this session
 
     /**
-     * Parameterized constructor for creating a session with a specific tenant and entryPoints.
+     * Constructs a new StreamSession for the specified tenant, entry points, and rules.
      *
-     * @param tenant      The tenant identifier for the session.
-     * @param entryPoints The entryPoints identifier for the session.
+     * @param tenant     The tenant identifier.
+     * @param entryPoints The entry points for the session.
+     * @param rules      The list of rules to be applied.
      */
     protected StreamSession(String tenant, Set<String> entryPoints, List<Rule> rules) {
         this.tenant = tenant;
@@ -55,7 +55,7 @@ public class StreamSession extends Session {
         this.sessionId = tenant;
         this.rules = rules;
 
-        // Drools services for creating configurations and sessions
+        // Initialize Drools services and configuration
         KieServices kieServices = KieServices.Factory.get();
         config = kieServices.newKieBaseConfiguration();
 
@@ -63,8 +63,10 @@ public class StreamSession extends Session {
     }
 
     /**
-     * Reloads the rules for this session.
-     * This method fetches the latest rules from the database and reinitializes the Drools session.
+     * Reloads the rules for this session with new entry points and rules.
+     *
+     * @param entryPoints The new entry points for the session.
+     * @param rules       The new list of rules to be applied.
      */
     protected void reloadRules(Set<String> entryPoints, List<Rule> rules) {
         System.out.println("Reloading rules for " + sessionId);
@@ -72,6 +74,7 @@ public class StreamSession extends Session {
         this.rules = rules;
         this.entryPoints = entryPoints;
 
+        // Add new rules to the KieHelper
         for (Rule rule : rules) {
             System.out.println("Loading rule: " + rule);
             kieHelper.addContent(rule.getDrl(), ResourceType.DRL);
@@ -80,82 +83,89 @@ public class StreamSession extends Session {
         // Dispose the old session
         stopRulesEngine();
 
-        // Build KieBase with configuration
+        // Build KieBase with the new configuration
         kieBase = kieHelper.build(config);
 
         // Create a new session
         kieSession = kieBase.newKieSession();
 
+        // Start the rules engine with the new rules
         startRulesEngine();
     }
 
     /**
-     * Initializes the session by loading rules, configuring Drools, and starting the rule engine.
+     * Initializes the session by setting up the KieHelper, KieBase, and KieSession.
      */
     @Override
     protected void init() {
         kieHelper = new KieHelper();
+        // Add rules to the KieHelper
         for (Rule rule : rules) {
             System.out.println("Loading rule: " + rule);
             kieHelper.addContent(rule.getDrl(), ResourceType.DRL);
         }
 
-        config.setOption(EventProcessingOption.STREAM); // Configure Drools for event processing
-        kieBase = kieHelper.build(config); // Build the KieBase
-        kieSession = kieBase.newKieSession(); // Create a new session
-        kieSession.setGlobal("kafkaProducer", kafkaProducerService);
+        // Configure Drools for event processing
+        config.setOption(EventProcessingOption.STREAM);
 
+        // Build the KieBase
+        kieBase = kieHelper.build(config);
+
+        // Create a new KieSession
+        kieSession = kieBase.newKieSession();
+
+        // Set global Kafka producer for use in rules
+        kieSession.setGlobal("kafkaProducer", kafkaProducerService);
     }
 
-
+    /**
+     * Consumes event facts from Kafka topics and inserts them into the Drools session.
+     */
     private void consumeEventFacts() {
         StreamsBuilder builder = kafkaStreamsFactory.getNewBuilder();
 
+        // For each entry point, create a Kafka stream and insert facts into the session
         entryPoints.forEach((entryPoint) ->
                 builder.stream(entryPoint + "-" + tenant, Consumed.with(Serdes.String(), CustomSerdes.AmrSerde()))
                         .foreach((k, m) -> {
-                            if (kieSession.getEntryPoint(entryPoint) == null)
+                            if (kieSession.getEntryPoint(entryPoint) == null) {
                                 System.out.println("There is no entrypoint with name: " + entryPoint);
-                            else
+                            } else {
                                 kieSession.getEntryPoint(entryPoint).insert(m);
+                            }
                         }));
 
-
+        // Start the Kafka stream
         kafkaStreamsFactory.startStream(sessionId, builder);
     }
 
+    /**
+     * Loads initial water meter facts into the Drools session.
+     */
     private void loadEntitiesFacts() {
-        // Insert initial data (water meters) into the session
+        // Fetch water meters for the tenant
         List<WaterMeter> meters = getMeters(tenant);
+
+        // Insert each water meter into the session
         for (WaterMeter meter : meters) {
             kieSession.getEntryPoint("metersEntry").insert(meter);
         }
     }
 
-
     /**
-     * Starts the Drools rule engine in a separate thread.
+     * Starts the Drools rule engine and consumes event facts.
      */
     @Override
     protected void startRulesEngine() {
-        //kieSession.setGlobal("kafkaProducer", kafkaProducerService);
+        // Load initial water meter facts
         loadEntitiesFacts();
 
-        // Add an event listener to capture rule firings
-       /*kieSession.addEventListener(new DefaultAgendaEventListener() {
-            @Override
-            public void afterMatchFired(AfterMatchFiredEvent event) {
-                // Check if an Alarm fact was inserted
-                kieSession.getObjects(o -> o instanceof Alarm).forEach(obj -> {
-                    Alarm message = (Alarm) obj;
-                    kafkaProducerService.sendMessage(message.getTopic(), message.getKey(), message.getMessage());
-                    kieSession.delete(kieSession.getFactHandle(message)); // Remove fact after sending
-                });
-            }
-        });*/
-
+        // Start the Drools session in a new thread
         new Thread(kieSession::fireUntilHalt).start();
+
+        // Consume event facts from Kafka
         consumeEventFacts();
+
         System.out.println("Drools rule engine started...");
     }
 
@@ -173,12 +183,11 @@ public class StreamSession extends Session {
         }
     }
 
-
     /**
-     * Fetches the water meters for the given tenant.
+     * Retrieves water meters for the specified tenant.
      *
      * @param tenant The tenant identifier.
-     * @return A list of water meters associated with the tenant.
+     * @return A list of water meters for the tenant.
      */
     public List<WaterMeter> getMeters(String tenant) {
         return waterMeterService.getWaterMetersByTenant(tenant).await().indefinitely();

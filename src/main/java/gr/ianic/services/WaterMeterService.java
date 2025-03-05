@@ -12,6 +12,10 @@ import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * A service for interacting with water meter data in the database.
+ * This class provides methods to retrieve water meter information using reactive programming.
+ */
 @ApplicationScoped
 public class WaterMeterService {
 
@@ -19,7 +23,10 @@ public class WaterMeterService {
     PgPool client; // Inject the reactive PostgreSQL client
 
     /**
-     * Fetch all water meters from the database.
+     * Retrieves a list of water meters for a specific tenant.
+     *
+     * @param tenant The tenant identifier.
+     * @return A {@link Uni} containing a list of {@link WaterMeter} objects.
      */
     public Uni<List<WaterMeter>> getWaterMetersByTenant(String tenant) {
         return client.preparedQuery("SELECT * FROM hydrometers WHERE client_id = $1")
@@ -34,7 +41,10 @@ public class WaterMeterService {
     }
 
     /**
-     * Fetch a water meter by its serial number.
+     * Retrieves a water meter by its serial number.
+     *
+     * @param serialNumber The serial number of the water meter.
+     * @return A {@link Uni} containing the {@link WaterMeter} object, or {@code null} if not found.
      */
     public Uni<WaterMeter> getWaterMeterBySerialNumber(String serialNumber) {
         return client.preparedQuery("SELECT * FROM hydrometers WHERE sensor_id = $1")
@@ -44,7 +54,10 @@ public class WaterMeterService {
     }
 
     /**
-     * Fetch a water meter by its serial number.
+     * Retrieves a water meter by its code.
+     *
+     * @param code The code of the water meter.
+     * @return A {@link Uni} containing the {@link WaterMeter} object, or {@code null} if not found.
      */
     public Uni<WaterMeter> getWaterMeterByCode(String code) {
         return client.preparedQuery("SELECT * FROM hydrometers WHERE code = $1")
@@ -54,7 +67,10 @@ public class WaterMeterService {
     }
 
     /**
-     * Map a database row to a WaterMeter object.
+     * Maps a database row to a {@link WaterMeter} object.
+     *
+     * @param row The database row to map.
+     * @return A {@link WaterMeter} object populated with data from the row.
      */
     private WaterMeter mapRowToWaterMeter(Row row) {
         WaterMeter waterMeter = new WaterMeter();
