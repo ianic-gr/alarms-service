@@ -8,7 +8,7 @@ import org.kie.api.definition.type.Role;
 /**
  * Represents an AMR (Automatic Meter Reading) measurement.
  * This class includes fields for status, identifiers, volume, and debug information.
- * It is annotated as an event for use in rule engines.
+ * It is annotated as an event for use in rules engine.
  */
 @Role(Role.Type.EVENT)
 public class AmrMeasurement {

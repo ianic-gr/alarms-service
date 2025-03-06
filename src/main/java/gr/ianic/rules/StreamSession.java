@@ -17,6 +17,7 @@ import org.kie.api.KieServices;
 import org.kie.api.conf.EventProcessingOption;
 import org.kie.api.io.ResourceType;
 import org.kie.api.runtime.KieSession;
+import org.kie.api.runtime.rule.EntryPoint;
 import org.kie.internal.utils.KieHelper;
 
 import java.util.List;
@@ -45,9 +46,9 @@ public class StreamSession extends Session {
     /**
      * Constructs a new StreamSession for the specified tenant, entry points, and rules.
      *
-     * @param tenant     The tenant identifier.
+     * @param tenant      The tenant identifier.
      * @param entryPoints The entry points for the session.
-     * @param rules      The list of rules to be applied.
+     * @param rules       The list of rules to be applied.
      */
     protected StreamSession(String tenant, Set<String> entryPoints, List<Rule> rules) {
         this.tenant = tenant;
@@ -126,14 +127,14 @@ public class StreamSession extends Session {
 
         // For each entry point, create a Kafka stream and insert facts into the session
         entryPoints.forEach((entryPoint) ->
+        {
+            EntryPoint kieSessionEntryPoint = kieSession.getEntryPoint(entryPoint);
+            if (kieSessionEntryPoint != null) {
                 builder.stream(entryPoint + "-" + tenant, Consumed.with(Serdes.String(), CustomSerdes.AmrSerde()))
-                        .foreach((k, m) -> {
-                            if (kieSession.getEntryPoint(entryPoint) == null) {
-                                System.out.println("There is no entrypoint with name: " + entryPoint);
-                            } else {
-                                kieSession.getEntryPoint(entryPoint).insert(m);
-                            }
-                        }));
+                        .foreach((k, m) -> kieSession.getEntryPoint(entryPoint).insert(m));
+            } else
+                System.out.println("No entry point '" + entryPoint + "' found for tenant '" + tenant + "'");
+        });
 
         // Start the Kafka stream
         kafkaStreamsFactory.startStream(sessionId, builder);
