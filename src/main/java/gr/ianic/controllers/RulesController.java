@@ -63,20 +63,16 @@ public class RulesController {
      * Creates a new session for the specified tenant and mode.
      *
      * @param tenant The tenant identifier for which to create the session.
-     * @param mode   The mode of the session (e.g., "stream").
+     * @param mode   The mode of the session (e.g., "stream"). Defaults to "stream" if not provided.
      * @return A response indicating the success or failure of the operation.
      */
     @POST
     @Path("/session/{tenant}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response createSession(@PathParam("tenant") String tenant, @QueryParam("mode") String mode) {
-        // Validate the mode parameter
-        if (mode == null || mode.isEmpty()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Query parameter 'mode' is required")
-                    .build();
-        }
-
+    public Response createSession(
+            @PathParam("tenant") String tenant,
+            @QueryParam("mode") @DefaultValue("stream") String mode // Default value is "stream"
+    ) {
         // Fetch rules for the tenant and mode
         List<Rule> rules = rulesDao.getByTenantAndMode(tenant, mode).all();
 
