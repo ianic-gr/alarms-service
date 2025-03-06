@@ -173,6 +173,20 @@ public class StreamSession extends Session {
         }
     }
 
+    protected void deleteWaterMeter(WaterMeter updatedMeter) {
+        // Retrieve the FactHandle for the specific WaterMeter
+        FactHandle factHandle = factHandlesMap.get(updatedMeter.getCode());
+
+        if (factHandle != null) {
+            // Update the fact in the session
+            kieSession.getEntryPoint("metersEntry").delete(factHandle);
+        } else {
+            // Handle the case where the fact is not found (e.g., insert it)
+            factHandle = kieSession.getEntryPoint("metersEntry").insert(updatedMeter);
+            factHandlesMap.put(updatedMeter.getCode(), factHandle);
+        }
+    }
+
     /**
      * Starts the Drools rule engine and consumes event facts.
      */

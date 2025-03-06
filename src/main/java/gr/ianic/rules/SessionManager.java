@@ -1,6 +1,7 @@
 package gr.ianic.rules;
 
 import gr.ianic.kafkaStreams.KafkaStreamsFactory;
+import gr.ianic.model.WaterMeter;
 import gr.ianic.model.rules.Rule;
 import gr.ianic.repositories.daos.RulesDao;
 import gr.ianic.services.KafkaProducerService;
@@ -129,6 +130,16 @@ public class SessionManager {
                 tenantRules.forEach(rule -> System.out.println("    Rule: " + rule.getName()));
             }
         }
+    }
+
+    public boolean updateWaterMetersFact(String tenant, WaterMeter waterMeter) {
+        StreamSession session = streamSessions.get(tenant);
+        if (session != null) {
+            session.updateWaterMeter(waterMeter);
+            return true;
+        }
+        else
+            return false;
     }
 
     /**

@@ -1,6 +1,7 @@
 package gr.ianic.controllers;
 
 import gr.ianic.model.rules.Rule;
+import gr.ianic.model.WaterMeter; // Import the WaterMeter class
 import gr.ianic.repositories.daos.RulesDao;
 import gr.ianic.rules.SessionManager;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -105,5 +106,29 @@ public class RulesController {
 
         // Handle invalid mode
         return Response.status(Response.Status.BAD_REQUEST).entity("Invalid mode").build();
+    }
+
+    /**
+     * Updates a WaterMeter fact in the session for the specified tenant.
+     *
+     * @param tenant     The tenant identifier for which to update the WaterMeter.
+     * @param waterMeter The updated WaterMeter object.
+     * @return A response indicating the success or failure of the operation.
+     */
+    @PUT
+    @Path("/watermeter/{tenant}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response updateWaterMeter(@PathParam("tenant") String tenant, @RequestBody WaterMeter waterMeter) {
+        // Use the SessionManager to update the WaterMeter fact
+        boolean isUpdated = sessionManager.updateWaterMetersFact(tenant, waterMeter);
+
+        if (isUpdated) {
+            return Response.ok("WaterMeter facts updated successfully for tenant: " + tenant).build();
+        } else {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("Session not found for tenant: " + tenant)
+                    .build();
+        }
     }
 }
