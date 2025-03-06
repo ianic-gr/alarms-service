@@ -18,9 +18,12 @@ import org.kie.api.conf.EventProcessingOption;
 import org.kie.api.io.ResourceType;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.rule.EntryPoint;
+import org.kie.api.runtime.rule.FactHandle;
 import org.kie.internal.utils.KieHelper;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -140,6 +143,8 @@ public class StreamSession extends Session {
         kafkaStreamsFactory.startStream(sessionId, builder);
     }
 
+    private final Map<String, FactHandle> factHandlesMap = new HashMap<>();
+
     /**
      * Loads initial water meter facts into the Drools session.
      */
@@ -147,9 +152,24 @@ public class StreamSession extends Session {
         // Fetch water meters for the tenant
         List<WaterMeter> meters = getMeters(tenant);
 
-        // Insert each water meter into the session
+        // Insert each water meter into the session and store its FactHandle
         for (WaterMeter meter : meters) {
-            kieSession.getEntryPoint("metersEntry").insert(meter);
+            FactHandle factHandle = kieSession.getEntryPoint("metersEntry").insert(meter);
+            factHandlesMap.put(meter.getCode(), factHandle); // Assuming WaterMeter has a unique ID
+        }
+    }
+
+    protected void updateWaterMeter(WaterMeter updatedMeter) {
+        // Retrieve the FactHandle for the specific WaterMeter
+        FactHandle factHandle = factHandlesMap.get(updatedMeter.getCode());
+
+        if (factHandle != null) {
+            // Update the fact in the session
+            kieSession.getEntryPoint("metersEntry").update(factHandle, updatedMeter);
+        } else {
+            // Handle the case where the fact is not found (e.g., insert it)
+            factHandle = kieSession.getEntryPoint("metersEntry").insert(updatedMeter);
+            factHandlesMap.put(updatedMeter.getCode(), factHandle);
         }
     }
 
