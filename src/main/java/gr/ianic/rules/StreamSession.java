@@ -43,7 +43,6 @@ public class StreamSession extends Session {
     private Set<String> entryPoints; // Entry points for the session
     private KieSession kieSession; // Drools session for rule evaluation
     private KieBase kieBase; // Drools KieBase containing the rules
-    private KieHelper kieHelper; // Helper for building KieBase
     private List<Rule> rules; // List of rules associated with this session
 
     /**
@@ -74,18 +73,19 @@ public class StreamSession extends Session {
      */
     protected void reloadRules(Set<String> entryPoints, List<Rule> rules) {
         System.out.println("Reloading rules for " + sessionId);
+        KieHelper kieHelper = new KieHelper(); // Helper for building KieBase
 
         this.rules = rules;
         this.entryPoints = entryPoints;
+
+        // Dispose the old session
+        stopRulesEngine();
 
         // Add new rules to the KieHelper
         for (Rule rule : rules) {
             System.out.println("Loading rule: " + rule);
             kieHelper.addContent(rule.getDrl(), ResourceType.DRL);
         }
-
-        // Dispose the old session
-        stopRulesEngine();
 
         // Build KieBase with the new configuration
         kieBase = kieHelper.build(config);
@@ -102,7 +102,7 @@ public class StreamSession extends Session {
      */
     @Override
     protected void init() {
-        kieHelper = new KieHelper();
+        KieHelper kieHelper = new KieHelper();
         // Add rules to the KieHelper
         for (Rule rule : rules) {
             System.out.println("Loading rule: " + rule);
@@ -167,6 +167,7 @@ public class StreamSession extends Session {
             // Update the fact in the session
             kieSession.getEntryPoint("metersEntry").update(factHandle, updatedMeter);
         } else {
+            System.out.println("Fact handle '" + updatedMeter.getCode() + "' not found." + "Inserting new fact " + updatedMeter.getCode());
             // Handle the case where the fact is not found (e.g., insert it)
             factHandle = kieSession.getEntryPoint("metersEntry").insert(updatedMeter);
             factHandlesMap.put(updatedMeter.getCode(), factHandle);
