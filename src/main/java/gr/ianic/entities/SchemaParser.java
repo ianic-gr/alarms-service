@@ -1,8 +1,9 @@
-package gr.ianic.model.entities;
+package gr.ianic.entities;
 
 import java.util.*;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.node.*;
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -29,7 +30,7 @@ public class SchemaParser {
      *         - Inner map: Field names mapped to their data types (e.g., "guid" → "UUID")
      * @throws org.json.JSONException If the input JSON is malformed
      */
-    public static Map<String, Map<String, String>> parseSchema(String jsonString) {
+    public static @NotNull Map<String, Map<String, String>> parseSchema(String jsonString) {
         Map<String, Map<String, String>> entityFields = new HashMap<>();
 
         // Parse the root JSON object
@@ -73,10 +74,10 @@ public class SchemaParser {
      *         with proper type conversion
      * @throws Exception If JSON parsing fails or required fields are missing
      */
-    public static List<JsonNode> mapResultsToSchema(
+    public static @NotNull List<JsonNode> mapResultsToSchema(
             String resultsJson,
             String entity,
-            Map<String, Map<String, String>> schemaMap
+            @NotNull Map<String, Map<String, String>> schemaMap
     ) throws Exception {
         JsonNode rootNode = objectMapper.readTree(resultsJson);
         List<JsonNode> mappedResults = new ArrayList<>();
