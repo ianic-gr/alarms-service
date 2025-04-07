@@ -159,16 +159,10 @@ public class SessionManager {
     // ======================================================== SCHEDULED SESSION ========================================================
     // ===================================================================================================================================
 
-    /**
-     * Creates a new scheduled session for the given source and tenant.
-     *
-     * @param source The source identifier for the session.
-     * @param tenant The tenant identifier for the session.
-     */
-    public void createScheduledSession(String source, String tenant) {
+    /*public void createScheduledSession(String source, String tenant) {
         ScheduledSession scheduledSession = new ScheduledSession();
         scheduledSessions.put(source + "-" + tenant, scheduledSession); // Add the session to the map
-    }
+    }*/
 
     /**
      * Adds a scheduled session to the map using the tenant as the key.

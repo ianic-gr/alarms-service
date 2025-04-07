@@ -2,6 +2,8 @@ package gr.ianic.entities;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gr.ianic.config.AuthConfig;
+import jakarta.inject.Inject;
 
 import java.io.IOException;
 import java.net.URI;
@@ -22,22 +24,35 @@ import java.util.Map;
  * </p>
  */
 public class EntitiesClient {
-    /** Base URL of the Entities-v2 API (e.g., "<a href="https://v2-staging.data.smartville.gr/swagger-ui/#/">...</a>") */
+    /**
+     * Base URL of the Entities-v2 API (e.g., "<a href="https://v2-staging.data.smartville.gr/swagger-ui/#/">...</a>")
+     */
     private final String baseUrl;
 
-    /** Tenant identifier (e.g., "vrilissia") */
+    /**
+     * Tenant identifier (e.g., "vrilissia")
+     */
     private final String tenant;
 
-    /** HTTP client for making requests */
+    /**
+     * HTTP client for making requests
+     */
     private final HttpClient httpClient;
 
-    /** Jackson ObjectMapper for JSON serialization/deserialization */
+    /**
+     * Jackson ObjectMapper for JSON serialization/deserialization
+     */
     private final ObjectMapper objectMapper;
 
-    /** Authentication configuration */
-    private final AuthConfig authConfig;
+    /**
+     * Authentication configuration
+     */
+    @Inject
+    AuthConfig authConfig;
 
-    /** Current OAuth2 access token */
+    /**
+     * Current OAuth2 access token
+     */
     private String accessToken;
 
     /**
@@ -67,11 +82,11 @@ public class EntitiesClient {
                 "target_entity", Map.of(
                         "label", entityLabel,
                         "filters", List.of(
-                                Map.of(
+                                /*Map.of(
                                         "property", "state",
                                         "operator", "eq",
                                         "values", List.of(state)
-                                )
+                                )*/
                         )
                 ),
                 "graph_filters", List.of()
@@ -114,7 +129,8 @@ public class EntitiesClient {
                 // Parse the JSON response to extract the access token
                 Map<String, Object> authResponse = objectMapper.readValue(
                         response.body(),
-                        new TypeReference<>() {}
+                        new TypeReference<>() {
+                        }
                 );
                 this.accessToken = (String) authResponse.get("access_token");
             } catch (Exception e) {
@@ -190,40 +206,4 @@ public class EntitiesClient {
         }
     }
 
-    /**
-     * Configuration holder for OAuth2 authentication parameters.
-     */
-    public static class AuthConfig {
-        /** URL of the OAuth2 token endpoint */
-        private final String authUrl;
-
-        /** OAuth2 client ID */
-        private final String clientId;
-
-        /** OAuth2 client secret */
-        private final String clientSecret;
-
-        /** Username for password grant */
-        private final String username;
-
-        /** Password for password grant */
-        private final String password;
-
-        /**
-         * Constructs a new AuthConfig with the specified parameters.
-         *
-         * @param authUrl      OAuth2 token endpoint URL
-         * @param clientId     OAuth2 client ID
-         * @param clientSecret OAuth2 client secret
-         * @param username     authentication username
-         * @param password     authentication password
-         */
-        public AuthConfig(String authUrl, String clientId, String clientSecret, String username, String password) {
-            this.authUrl = authUrl;
-            this.clientId = clientId;
-            this.clientSecret = clientSecret;
-            this.username = username;
-            this.password = password;
-        }
-    }
 }
