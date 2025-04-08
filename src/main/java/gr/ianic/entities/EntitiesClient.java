@@ -1,6 +1,7 @@
 package gr.ianic.entities;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.ianic.config.AuthConfig;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -55,7 +56,7 @@ public class EntitiesClient {
     /**
      * Constructs a new EntitiesClient with the specified configuration.
      *
-     * @param baseUrl    the base URL of the Entities-v2 API
+     * @param baseUrl the base URL of the Entities-v2 API
      */
     @Inject
     public EntitiesClient(@ConfigProperty(name = "entities.api.base-url") String baseUrl, AuthConfig authConfig) {
@@ -199,5 +200,72 @@ public class EntitiesClient {
                     ", response: " + response.body());
         }
     }
+
+    /**
+     * Fetches the schema JSON from the Entities-v2 API for a specific tenant.
+     *
+     * @param tenant the tenant identifier (e.g., "vrilissia")
+     * @return the raw schema JSON as a string
+     * @throws IOException          if there's an I/O error or the request fails
+     * @throws InterruptedException if the operation is interrupted
+     */
+    public String fetchSchemaJson(String tenant) throws IOException, InterruptedException {
+        // Authenticate if token is missing
+        if (accessToken == null) {
+            authenticate();
+        }
+
+        String schemaUrl = String.format("%s/schema/%s/balloon-works/entityTypes", baseUrl, tenant);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(schemaUrl))
+                .header("Accept", "application/json")
+                .header("Authorization", "Bearer " + accessToken)
+                .GET()
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() == 401) {
+            // Token expired? Re-auth and retry once
+            authenticate();
+            request = HttpRequest.newBuilder()
+                    .uri(URI.create(schemaUrl))
+                    .header("Accept", "application/json")
+                    .header("Authorization", "Bearer " + accessToken)
+                    .GET()
+                    .build();
+
+            response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        }
+
+        if (response.statusCode() >= 200 && response.statusCode() < 300) {
+            return response.body();
+        } else {
+            throw new IOException("Schema request failed with status code: " + response.statusCode() +
+                    ", response: " + response.body());
+        }
+    }
+
+
+    public List<JsonNode> getEntity(
+            String tenant,
+            String project,
+            String entity,
+            Map<String, Object> gremlinQuery
+    ) throws Exception {
+        // Fetch schema JSON using the tenant
+        String schemaJson = fetchSchemaJson(tenant);
+
+        // Call the API and get raw JSON response
+        String rawJsonResponse = makeRequest(tenant, project, entity, gremlinQuery);
+
+        // Parse the schema to extract mapping info
+        Map<String, Map<String, String>> schemaMap = SchemaParser.parseSchema(schemaJson);
+
+        // Map the raw results to schema-defined structure
+        return SchemaParser.mapResultsToSchema(rawJsonResponse, entity, schemaMap);
+    }
+
 
 }
