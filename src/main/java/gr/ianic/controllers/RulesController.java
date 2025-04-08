@@ -4,12 +4,14 @@ import gr.ianic.model.rules.Rule;
 import gr.ianic.model.WaterMeter; // Import the WaterMeter class
 import gr.ianic.repositories.daos.RulesDao;
 import gr.ianic.rules.SessionManager;
+import gr.ianic.rules.TenantRulesInfo;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.AbstractMap;
 import java.util.List;
@@ -86,10 +88,10 @@ public class RulesController {
         // Handle stream mode
         if (mode.equalsIgnoreCase("stream")) {
             // Organize rules by entry points
-            AbstractMap.SimpleEntry<Set<String>, List<Rule>> organizedRules = sessionManager.organizeSingleTenantRules(rules);
+            @NotNull TenantRulesInfo tenantRulesInfo = sessionManager.organizeSingleTenantRules(rules);
 
             // Create a stream session
-            boolean sessionCreated = sessionManager.createStreamSession(organizedRules.getKey(), tenant, organizedRules.getValue());
+            boolean sessionCreated = sessionManager.createStreamSession(tenant, tenantRulesInfo);
 
             if (sessionCreated) {
                 return Response.ok("Session created successfully for tenant: " + tenant + " with mode: " + mode).build();

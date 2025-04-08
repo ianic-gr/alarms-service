@@ -1,14 +1,12 @@
 package gr.ianic.config;
 
+import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperties;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+@ApplicationScoped
 @ConfigProperties(prefix = "smartville")
 public class AuthConfig {
-
-    @ConfigProperty(name = "api.base-url")
-    public String baseUrl;
-
     @ConfigProperty(name = "auth.url")
     public String authUrl;
 

@@ -3,7 +3,9 @@ package gr.ianic.entities;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.ianic.config.AuthConfig;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.io.IOException;
 import java.net.URI;
@@ -23,16 +25,12 @@ import java.util.Map;
  * Gremlin queries and automatically manages OAuth2 access tokens.
  * </p>
  */
+@ApplicationScoped
 public class EntitiesClient {
     /**
      * Base URL of the Entities-v2 API (e.g., "<a href="https://v2-staging.data.smartville.gr/swagger-ui/#/">...</a>")
      */
     private final String baseUrl;
-
-    /**
-     * Tenant identifier (e.g., "vrilissia")
-     */
-    private final String tenant;
 
     /**
      * HTTP client for making requests
@@ -47,7 +45,6 @@ public class EntitiesClient {
     /**
      * Authentication configuration
      */
-    @Inject
     AuthConfig authConfig;
 
     /**
@@ -58,26 +55,23 @@ public class EntitiesClient {
     /**
      * Constructs a new EntitiesClient with the specified configuration.
      *
-     * @param baseUrl    the base URL of the Smartville API
-     * @param tenant     the tenant identifier
-     * @param authConfig authentication configuration
+     * @param baseUrl    the base URL of the Entities-v2 API
      */
-    public EntitiesClient(String baseUrl, String tenant, AuthConfig authConfig) {
+    @Inject
+    public EntitiesClient(@ConfigProperty(name = "entities.api.base-url") String baseUrl, AuthConfig authConfig) {
         this.baseUrl = baseUrl;
-        this.tenant = tenant;
         this.httpClient = HttpClient.newHttpClient();
-        this.objectMapper = new ObjectMapper();
         this.authConfig = authConfig;
+        this.objectMapper = new ObjectMapper();
     }
 
     /**
      * Creates a standard Gremlin query for entity filtering.
      *
      * @param entityLabel the label of the target entity (e.g., "vrilissia_hydrometer")
-     * @param state       the state to filter by (e.g., "active")
      * @return a Map representing the Gremlin query structure
      */
-    public static Map<String, Object> createGremlinQuery(String entityLabel, String state) {
+    public static Map<String, Object> createGremlinQuery(String entityLabel) {
         return Map.of(
                 "target_entity", Map.of(
                         "label", entityLabel,
@@ -157,7 +151,7 @@ public class EntitiesClient {
      * @throws IOException          if there's an I/O error or the request fails
      * @throws InterruptedException if the operation is interrupted
      */
-    public String makeRequest(String project, String entity, Map<String, Object> gremlinQuery)
+    public String makeRequest(String tenant, String project, String entity, Map<String, Object> gremlinQuery)
             throws IOException, InterruptedException {
         // Authenticate if we don't have a token
         if (accessToken == null) {

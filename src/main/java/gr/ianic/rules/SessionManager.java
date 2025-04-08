@@ -1,5 +1,6 @@
 package gr.ianic.rules;
 
+import gr.ianic.entities.EntitiesClient;
 import gr.ianic.kafkaStreams.KafkaStreamsFactory;
 import gr.ianic.model.WaterMeter;
 import gr.ianic.model.rules.Rule;
@@ -34,6 +35,9 @@ public class SessionManager {
     @Inject
     KafkaProducerService kafkaProducerService; // Service for producing Kafka messages
 
+    @Inject
+    EntitiesClient entitiesClient;
+
     // Thread-safe map to store active stream sessions, keyed by tenant.
     private Map<String, StreamSession> streamSessions;
 
@@ -54,18 +58,11 @@ public class SessionManager {
     // ========================================================= STREAM SESSION ==========================================================
     // ===================================================================================================================================
 
-    /**
-     * Creates and initializes a new stream session for the given tenant.
-     *
-     * @param entryPoints The set of entry points for the session.
-     * @param tenant      The tenant identifier for the session.
-     * @param rules       The list of rules to be applied in the session.
-     * @return {@code true} if the session was created successfully, {@code false} otherwise.
-     */
-    public boolean createStreamSession(Set<String> entryPoints, String tenant, List<Rule> rules) {
-        System.out.println("Creating stream session for tenant " + tenant + " with entry points " + entryPoints);
+
+    public boolean createStreamSession(String tenant, TenantRulesInfo tenantRulesInfo) {
+        System.out.println("Creating stream session for tenant " + tenant + " with info " + tenantRulesInfo);
         try {
-            StreamSession streamSession = new StreamSession(tenant, entryPoints, rules);
+            StreamSession streamSession = new StreamSession(tenant, tenantRulesInfo.getEntrypoints(), tenantRulesInfo.getRules(), tenantRulesInfo.getEntities());
             streamSession.rulesDao = rulesDao;
             streamSession.waterMeterService = waterMeterService;
             streamSession.kafkaStreamsFactory = kafkaStreamsFactory;
@@ -116,11 +113,11 @@ public class SessionManager {
                 destroyStreamSession(tenant);
             } else {
                 // Process rules for the single tenant
-                AbstractMap.SimpleEntry<Set<String>, List<Rule>> result = organizeSingleTenantRules(rules);
+                @NotNull TenantRulesInfo tenantRulesInfo = organizeSingleTenantRules(rules);
 
                 // Extract entrypoints and rules
-                Set<String> entrypoints = result.getKey();
-                List<Rule> tenantRules = result.getValue();
+                Set<String> entrypoints = tenantRulesInfo.getEntrypoints();
+                List<Rule> tenantRules = tenantRulesInfo.getRules();
 
                 // Reload rules in the session
                 System.out.println("Reloading rules for tenant: " + tenant);
@@ -137,8 +134,7 @@ public class SessionManager {
         if (session != null) {
             session.updateWaterMeter(waterMeter);
             return true;
-        }
-        else
+        } else
             return false;
     }
 
@@ -189,30 +185,36 @@ public class SessionManager {
     // ===================================================================================================================================
 
     /**
-     * Organizes rules by tenant and entry point.
+     * Organizes rules by tenant, entry point, and entity.
      *
      * @param rules The list of rules to organize.
      * @return A map where the key is the tenant and the value is another map.
-     * The inner map's key is the entry point, and the value is the list of rules for that entry point.
+     *         The inner map's key is the entry point, and the value is the list of rules for that entry point.
+     *         Additionally, rules are grouped by entities.
      */
-    private @NotNull Map<String, Map<String, List<Rule>>> organizeRulesByTenantAndEntrypoint(@NotNull List<Rule> rules) {
-        // Map to store the result
-        Map<String, Map<String, List<Rule>>> tenantMap = new HashMap<>();
+    private @NotNull Map<String, TenantRulesGrouped> organizeRulesByTenantEntrypointAndEntity(@NotNull List<Rule> rules) {
+        Map<String, TenantRulesGrouped> tenantMap = new HashMap<>();
 
         for (Rule rule : rules) {
             String tenant = rule.getTenant();
             Set<String> entrypoints = rule.getEntryPoints();
+            Set<String> entities = rule.getEntities();
 
-            // If the tenant is not already in the map, add them
-            tenantMap.putIfAbsent(tenant, new HashMap<>());
+            // Initialize for tenant if absent
+            tenantMap.putIfAbsent(tenant, new TenantRulesGrouped());
 
-            // Get the map of entry points to rules for the current tenant
-            Map<String, List<Rule>> entrypointMap = tenantMap.get(tenant);
+            TenantRulesGrouped grouped = tenantMap.get(rule.getTenant());
 
-            // Iterate through each entrypoint and add the rule to the corresponding list
+            // Group by entrypoint
             for (String entrypoint : entrypoints) {
-                entrypointMap.putIfAbsent(entrypoint, new ArrayList<>());
-                entrypointMap.get(entrypoint).add(rule);
+                grouped.entrypointMap.putIfAbsent(entrypoint, new ArrayList<>());
+                grouped.entrypointMap.get(entrypoint).add(rule);
+            }
+
+            // Group by entity
+            for (String entity : entities) {
+                grouped.entityMap.putIfAbsent(entity, new ArrayList<>());
+                grouped.entityMap.get(entity).add(rule);
             }
         }
 
@@ -220,31 +222,27 @@ public class SessionManager {
     }
 
     /**
-     * Flattens the rules organized by tenant and entry point into a simpler structure.
+     * Flattens the tenant rules map into a simpler format including entrypoints, entities, and rules.
      *
-     * @param tenantMap The map of rules organized by tenant and entry point.
-     * @return A map where the key is the tenant and the value is a pair containing:
-     * - A set of all unique entry points for the tenant.
-     * - A list of all rules for the tenant.
+     * @param tenantMap The grouped tenant map.
+     * @return A map where each tenant is associated with entrypoints, entities, and all rules.
      */
-    private @NotNull Map<String, AbstractMap.SimpleEntry<Set<String>, List<Rule>>> flattenTenantRules(@NotNull Map<String, Map<String, List<Rule>>> tenantMap) {
-        Map<String, AbstractMap.SimpleEntry<Set<String>, List<Rule>>> result = new HashMap<>();
+    private @NotNull Map<String, TenantRulesInfo> flattenTenantRules(@NotNull Map<String, TenantRulesGrouped> tenantMap) {
+        Map<String, TenantRulesInfo> result = new HashMap<>();
 
-        for (Map.Entry<String, Map<String, List<Rule>>> tenantEntry : tenantMap.entrySet()) {
+        for (Map.Entry<String, TenantRulesGrouped> tenantEntry : tenantMap.entrySet()) {
             String tenant = tenantEntry.getKey();
-            Map<String, List<Rule>> entrypointMap = tenantEntry.getValue();
+            TenantRulesGrouped grouped = tenantEntry.getValue();
 
-            // Collect all unique entry points
-            Set<String> allEntrypoints = new HashSet<>(entrypointMap.keySet());
+            Set<String> allEntrypoints = new HashSet<>(grouped.entrypointMap.keySet());
+            Set<String> allEntities = new HashSet<>(grouped.entityMap.keySet());
 
-            // Collect all rules (flattened)
             List<Rule> allRules = new ArrayList<>();
-            for (List<Rule> rules : entrypointMap.values()) {
+            for (List<Rule> rules : grouped.entrypointMap.values()) {
                 allRules.addAll(rules);
             }
 
-            // Add to the result map
-            result.put(tenant, new AbstractMap.SimpleEntry<>(allEntrypoints, allRules));
+            result.put(tenant, new TenantRulesInfo(allEntrypoints, allEntities, allRules));
         }
 
         return result;
@@ -258,37 +256,44 @@ public class SessionManager {
      * - A set of all unique entry points for the tenant.
      * - A list of all rules for the tenant.
      */
-    public Map<String, AbstractMap.SimpleEntry<Set<String>, List<Rule>>> organizeRules(List<Rule> rules) {
-        Map<String, Map<String, List<Rule>>> tenantMap = organizeRulesByTenantAndEntrypoint(rules);
+    public @NotNull Map<String, TenantRulesInfo> organizeRules(List<Rule> rules) {
+        @NotNull Map<String, TenantRulesGrouped> tenantMap = organizeRulesByTenantEntrypointAndEntity(rules);
         return flattenTenantRules(tenantMap);
     }
 
     /**
-     * Organizes rules for a single tenant.
+     * Organizes rules for a single tenant, collecting entry points and entities.
      *
      * @param rules The list of rules to organize.
-     * @return A pair containing:
-     * - A set of all unique entry points for the tenant.
-     * - A list of all rules for the tenant.
+     * @return A {@link TenantRulesInfo} object containing:
+     *         - A set of all unique entry points.
+     *         - A set of all unique entities.
+     *         - A list of all rules.
      */
     @Contract("_ -> new")
-    public AbstractMap.@NotNull SimpleEntry<Set<String>, List<Rule>> organizeSingleTenantRules(@NotNull List<Rule> rules) {
-        // Set to store all unique entry points
+    public @NotNull TenantRulesInfo organizeSingleTenantRules(@NotNull List<Rule> rules) {
         Set<String> allEntrypoints = new HashSet<>();
-
-        // List to store all rules (flattened)
+        Set<String> allEntities = new HashSet<>();
         List<Rule> allRules = new ArrayList<>();
 
-        // Iterate through the rules
         for (Rule rule : rules) {
-            // Add all entrypoints to the set
             allEntrypoints.addAll(rule.getEntryPoints());
-
-            // Add the rule to the list
+            allEntities.addAll(rule.getEntities());
             allRules.add(rule);
         }
 
-        // Return the result as a Pair (or AbstractMap.SimpleEntry)
-        return new AbstractMap.SimpleEntry<>(allEntrypoints, allRules);
+        return new TenantRulesInfo(allEntrypoints, allEntities, allRules);
     }
+
+
+
+
+
+    // Container to hold grouped rules by entrypoint and entity for a tenant
+    private static class TenantRulesGrouped {
+        Map<String, List<Rule>> entrypointMap = new HashMap<>();
+        Map<String, List<Rule>> entityMap = new HashMap<>();
+    }
+
+
 }

@@ -1,5 +1,6 @@
 package gr.ianic.rules;
 
+import gr.ianic.entities.EntitiesClient;
 import gr.ianic.kafkaStreams.KafkaStreamsFactory;
 import gr.ianic.kafkaStreams.serdes.CustomSerdes;
 import gr.ianic.model.WaterMeter;
@@ -36,6 +37,7 @@ public class StreamSession extends Session {
     private final String tenant; // The tenant identifier for this session
     private final String sessionId; // Unique identifier for the session
     private final KieBaseConfiguration config; // Configuration for the Drools KieBase
+    private final Set<String> entities;
     protected KafkaProducerService kafkaProducerService; // Service for producing Kafka messages
     protected KafkaStreamsFactory kafkaStreamsFactory; // Factory for creating Kafka Streams
     protected WaterMeterService waterMeterService; // Service for fetching water meter data
@@ -44,6 +46,7 @@ public class StreamSession extends Session {
     private KieSession kieSession; // Drools session for rule evaluation
     private KieBase kieBase; // Drools KieBase containing the rules
     private List<Rule> rules; // List of rules associated with this session
+    private EntitiesClient entitiesClient;
 
     /**
      * Constructs a new StreamSession for the specified tenant, entry points, and rules.
@@ -52,11 +55,12 @@ public class StreamSession extends Session {
      * @param entryPoints The entry points for the session.
      * @param rules       The list of rules to be applied.
      */
-    protected StreamSession(String tenant, Set<String> entryPoints, List<Rule> rules) {
+    protected StreamSession(String tenant, Set<String> entryPoints, List<Rule> rules, Set<String> entities) {
         this.tenant = tenant;
         this.entryPoints = entryPoints;
         this.sessionId = tenant;
         this.rules = rules;
+        this.entities = entities;
 
         // Initialize Drools services and configuration
         KieServices kieServices = KieServices.Factory.get();

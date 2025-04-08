@@ -3,10 +3,12 @@ package gr.ianic;
 import gr.ianic.model.rules.Rule;
 import gr.ianic.repositories.daos.RulesDao;
 import gr.ianic.rules.SessionManager;
+import gr.ianic.rules.TenantRulesInfo;
 import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
@@ -35,16 +37,16 @@ public class StreamApp {
         List<Rule> rules = rulesDao.getByMode("stream").all();
 
         // Organize rules by tenant and entry points
-        Map<String, AbstractMap.SimpleEntry<Set<String>, List<Rule>>> organizedRules = sessionManager.organizeRules(rules);
+        @NotNull Map<String, TenantRulesInfo> organizedRules = sessionManager.organizeRules(rules);
 
         // Create a stream session for each tenant
-        organizedRules.forEach((tenant, erTuple) -> {
-            boolean created = sessionManager.createStreamSession(erTuple.getKey(), tenant, erTuple.getValue());
+        organizedRules.forEach((tenant, info) -> {
+            boolean created = sessionManager.createStreamSession(tenant, info);
             if (!created) {
                 System.out.println("Create stream session failed for tenant: " + tenant);
             }
             // Print the rules for the tenant
-            erTuple.getValue().forEach(rule -> System.out.println("    Rule: " + rule.getName()));
+            info.getRules().forEach(rule -> System.out.println("    Rule: " + rule.getName()));
         });
     }
 }
