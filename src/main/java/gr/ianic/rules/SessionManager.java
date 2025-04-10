@@ -118,10 +118,11 @@ public class SessionManager {
                 // Extract entrypoints and rules
                 Set<String> entrypoints = tenantRulesInfo.getEntrypoints();
                 List<Rule> tenantRules = tenantRulesInfo.getRules();
+                Set<String> entities = tenantRulesInfo.getEntities();
 
                 // Reload rules in the session
                 System.out.println("Reloading rules for tenant: " + tenant);
-                session.reloadRules(entrypoints, tenantRules);
+                session.reloadRules(entrypoints, tenantRules, entities);
 
                 // Print the rules being reloaded
                 tenantRules.forEach(rule -> System.out.println("    Rule: " + rule.getName()));
@@ -189,8 +190,8 @@ public class SessionManager {
      *
      * @param rules The list of rules to organize.
      * @return A map where the key is the tenant and the value is another map.
-     *         The inner map's key is the entry point, and the value is the list of rules for that entry point.
-     *         Additionally, rules are grouped by entities.
+     * The inner map's key is the entry point, and the value is the list of rules for that entry point.
+     * Additionally, rules are grouped by entities.
      */
     private @NotNull Map<String, TenantRulesGrouped> organizeRulesByTenantEntrypointAndEntity(@NotNull List<Rule> rules) {
         Map<String, TenantRulesGrouped> tenantMap = new HashMap<>();
@@ -266,9 +267,9 @@ public class SessionManager {
      *
      * @param rules The list of rules to organize.
      * @return A {@link TenantRulesInfo} object containing:
-     *         - A set of all unique entry points.
-     *         - A set of all unique entities.
-     *         - A list of all rules.
+     * - A set of all unique entry points.
+     * - A set of all unique entities.
+     * - A list of all rules.
      */
     @Contract("_ -> new")
     public @NotNull TenantRulesInfo organizeSingleTenantRules(@NotNull List<Rule> rules) {
@@ -284,9 +285,6 @@ public class SessionManager {
 
         return new TenantRulesInfo(allEntrypoints, allEntities, allRules);
     }
-
-
-
 
 
     // Container to hold grouped rules by entrypoint and entity for a tenant

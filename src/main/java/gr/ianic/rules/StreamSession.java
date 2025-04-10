@@ -38,7 +38,7 @@ public class StreamSession extends Session {
     private final String tenant; // The tenant identifier for this session
     private final String sessionId; // Unique identifier for the session
     private final KieBaseConfiguration config; // Configuration for the Drools KieBase
-    private final Set<String> entities;
+    private Set<String> entities;
     protected KafkaProducerService kafkaProducerService; // Service for producing Kafka messages
     protected KafkaStreamsFactory kafkaStreamsFactory; // Factory for creating Kafka Streams
     protected WaterMeterService waterMeterService; // Service for fetching water meter data
@@ -76,12 +76,13 @@ public class StreamSession extends Session {
      * @param entryPoints The new entry points for the session.
      * @param rules       The new list of rules to be applied.
      */
-    protected void reloadRules(Set<String> entryPoints, List<Rule> rules) {
+    protected void reloadRules(Set<String> entryPoints, List<Rule> rules, Set<String> entities) {
         System.out.println("Reloading rules for " + sessionId);
         KieHelper kieHelper = new KieHelper(); // Helper for building KieBase
 
         this.rules = rules;
         this.entryPoints = entryPoints;
+        this.entities = entities;
 
         // Dispose the old session
         stopRulesEngine();
