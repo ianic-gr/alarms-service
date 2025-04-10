@@ -62,7 +62,7 @@ public class SessionManager {
     public boolean createStreamSession(String tenant, TenantRulesInfo tenantRulesInfo) {
         System.out.println("Creating stream session for tenant " + tenant + " with info " + tenantRulesInfo);
         try {
-            StreamSession streamSession = new StreamSession(tenant, tenantRulesInfo.getEntrypoints(), tenantRulesInfo.getRules(), tenantRulesInfo.getEntities());
+            StreamSession streamSession = new StreamSession(tenant, tenantRulesInfo.getEntrypoints(), tenantRulesInfo.getRules(), tenantRulesInfo.getEntities(), entitiesClient);
             streamSession.rulesDao = rulesDao;
             streamSession.waterMeterService = waterMeterService;
             streamSession.kafkaStreamsFactory = kafkaStreamsFactory;

@@ -1,5 +1,6 @@
 package gr.ianic.rules;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import gr.ianic.entities.EntitiesClient;
 import gr.ianic.kafkaStreams.KafkaStreamsFactory;
 import gr.ianic.kafkaStreams.serdes.CustomSerdes;
@@ -55,7 +56,7 @@ public class StreamSession extends Session {
      * @param entryPoints The entry points for the session.
      * @param rules       The list of rules to be applied.
      */
-    protected StreamSession(String tenant, Set<String> entryPoints, List<Rule> rules, Set<String> entities) {
+    protected StreamSession(String tenant, Set<String> entryPoints, List<Rule> rules, Set<String> entities, EntitiesClient entitiesClient) {
         this.tenant = tenant;
         this.entryPoints = entryPoints;
         this.sessionId = tenant;
@@ -153,13 +154,16 @@ public class StreamSession extends Session {
      * Loads initial water meter facts into the Drools session.
      */
     private void loadEntitiesFacts() {
-        // Fetch water meters for the tenant
-        List<WaterMeter> meters = getMeters(tenant);
+        entities.forEach(this::loadEntityFacts);
+    }
 
-        // Insert each water meter into the session and store its FactHandle
-        for (WaterMeter meter : meters) {
-            FactHandle factHandle = kieSession.getEntryPoint("metersEntry").insert(meter);
-            factHandlesMap.put(meter.getCode(), factHandle); // Assuming WaterMeter has a unique ID
+    private void loadEntityFacts(String entity) {
+        try {
+            List<JsonNode> entityFacts = entitiesClient.getEntity(tenant, "", entity);
+            EntryPoint entityEntrypoint = kieSession.getEntryPoint(entity);
+            entityFacts.forEach(entityEntrypoint::insert);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 

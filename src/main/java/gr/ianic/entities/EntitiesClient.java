@@ -286,11 +286,12 @@ public class EntitiesClient {
      * @param tenant       the tenant identifier
      * @param project      the project identifier
      * @param entity       the entity type to retrieve
-     * @param gremlinQuery the Gremlin query parameters
      * @return a list of JsonNode objects representing the mapped entities
      * @throws Exception if any step of the process fails
      */
-    public List<JsonNode> getEntity(String tenant, String project, String entity, Map<String, Object> gremlinQuery) throws Exception {
+    public List<JsonNode> getEntity(String tenant, String project, String entity) throws Exception {
+        Map<String, Object> gremlinQuery = createGremlinQuery(tenant + "_" + entity);
+
         // 1. Fetch current schema definition
         String schemaJson = fetchSchemaJson(tenant);
 
