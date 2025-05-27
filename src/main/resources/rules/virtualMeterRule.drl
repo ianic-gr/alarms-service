@@ -1,0 +1,45 @@
+import java.util.List;
+import gr.ianic.model.measurements.ScadaMeasurement;
+import gr.ianic.utils.SensorGroup
+import gr.ianic.utils.AggregationResult
+import java.util.Map
+import java.util.HashMap
+
+
+rule "Aggregate sensor values by group and variable in 1-minute windows"
+  no-loop
+  when
+    $window: List() from accumulate(
+      $e: ScadaMeasurement(
+        // Filter out sensors not in GroupA or GroupB
+        SensorGroup.getGroup(sensorName) in ("GroupA", "GroupB")
+      ) over window:time(1m),
+      collectList($e)
+    )
+  then
+    // Group by variableName and sensorGroup, then aggregate
+    Map<String, Map<String, AggregationResult>> results = new HashMap<>();
+
+    for (Object measurement : $window) {
+      String variable = ((ScadaMeasurement)measurement).getVariableName();
+      String group = SensorGroup.getGroup(((ScadaMeasurement)measurement).getSensorName());
+
+      results.putIfAbsent(variable, new HashMap<>());
+      results.get(variable).putIfAbsent(group, new AggregationResult());
+
+      AggregationResult agg = results.get(variable).get(group);
+      agg.addValue(((ScadaMeasurement)measurement).getValue());
+    }
+
+    // Emit aggregated results (e.g., send to another Kafka topic)
+    for (String emitVar : results.keySet()) {
+      for (String emitGroup : results.get(emitVar).keySet()) {
+        AggregationResult emitAgg = results.get(emitVar).get(emitGroup);
+        System.out.printf(
+          "[%s][%s] Avg: %.2f, Count: %d%n",
+          emitVar, group, emitAgg.getAverage(), emitAgg.getCount()
+        );
+      }
+    }
+end
+
