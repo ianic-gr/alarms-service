@@ -1,45 +1,74 @@
 import java.util.List;
 import gr.ianic.model.measurements.ScadaMeasurement;
-import gr.ianic.utils.SensorGroup
-import gr.ianic.utils.AggregationResult
-import java.util.Map
-import java.util.HashMap
+import gr.ianic.utils.SensorGroup;
+import gr.ianic.utils.AggregationResult;
+import java.util.Map;
+import java.util.HashMap;
 
+// Define a control fact to mark window boundaries
+declare WindowEnd
+  timestamp: long
+end
 
-rule "Aggregate sensor values by group and variable in 1-minute windows"
+rule "Initialize Tumbling Window"
+  timer (cron:0 * * * * ?)  // Triggers at the start of every minute
+  when
+    not WindowEnd()
+  then
+    insert(new WindowEnd(System.currentTimeMillis()));
+end
+
+rule "Aggregate sensor values in 1-minute tumbling windows"
   no-loop
   when
+    $end: WindowEnd($timestamp: timestamp)
     $window: List() from accumulate(
       $e: ScadaMeasurement(
-        // Filter out sensors not in GroupA or GroupB
-        SensorGroup.getGroup(sensorName) in ("GroupA", "GroupB")
-      ) over window:time(1m),
+        SensorGroup.getGroup(getSensorName(), getVariableName()) in ("Δ1Υ", "Δ1Χ"),
+        getTimestamp() <= $timestamp,
+        getTimestamp() > ($timestamp - 60000),
+        getTimestamp() != -1
+      ) from entry-point "scada",
       collectList($e)
     )
   then
-    // Group by variableName and sensorGroup, then aggregate
-    Map<String, Map<String, AggregationResult>> results = new HashMap<>();
+    // Declare as raw types to avoid MVEL compiler issues
+    Map results = new java.util.HashMap();
 
     for (Object measurement : $window) {
-      String variable = ((ScadaMeasurement)measurement).getVariableName();
-      String group = SensorGroup.getGroup(((ScadaMeasurement)measurement).getSensorName());
+        ScadaMeasurement sm = (ScadaMeasurement) measurement;
+        String variable = sm.getVariableName();
+        String group = SensorGroup.getGroup(sm.getSensorName(), sm.getVariableName());
 
-      results.putIfAbsent(variable, new HashMap<>());
-      results.get(variable).putIfAbsent(group, new AggregationResult());
+        if (!results.containsKey(variable)) {
+            results.put(variable, new java.util.HashMap());
+        }
 
-      AggregationResult agg = results.get(variable).get(group);
-      agg.addValue(((ScadaMeasurement)measurement).getValue());
+        Map groupMap = (Map) results.get(variable);
+        if (!groupMap.containsKey(group)) {
+            groupMap.put(group, new AggregationResult());
+        }
+
+        AggregationResult agg = (AggregationResult) groupMap.get(group);
+        agg.addValue(sm.getValue());
     }
 
-    // Emit aggregated results (e.g., send to another Kafka topic)
-    for (String emitVar : results.keySet()) {
-      for (String emitGroup : results.get(emitVar).keySet()) {
-        AggregationResult emitAgg = results.get(emitVar).get(emitGroup);
-        System.out.printf(
-          "[%s][%s] Avg: %.2f, Count: %d%n",
-          emitVar, group, emitAgg.getAverage(), emitAgg.getCount()
-        );
-      }
+    // Emit results
+    for (Object varEntryObj : results.entrySet()) {
+        Map.Entry varEntry = (Map.Entry) varEntryObj;
+        String emitVar = (String) varEntry.getKey();
+        Map emitGroupMap = (Map) varEntry.getValue();
+
+        for (Object groupEntryObj : emitGroupMap.entrySet()) {
+            Map.Entry groupEntry = (Map.Entry) groupEntryObj;
+            String emitGroup = (String) groupEntry.getKey();
+            AggregationResult emitAgg = (AggregationResult) groupEntry.getValue();
+
+            System.out.printf("[%s][%s] Avg: %.2f, Count: %d, Sum: %.2f%n",
+                emitVar, emitGroup, emitAgg.getAverage(), emitAgg.getCount(), emitAgg.getSum());
+        }
     }
+
+    // Clear the window for the next interval
+    retract($end);
 end
-

@@ -10,7 +10,8 @@ import java.util.Map;
  */
 public enum Severity {
     WARNING("WARNING"), // Represents a warning-level severity
-    CRITICAL("CRITICAL"); // Represents a critical-level severity
+    CRITICAL("CRITICAL"), // Represents a critical-level severity
+    INFO("INFO"); // Represents an info-level severity
 
     // A map to store enum values keyed by their string labels
     private static final Map<String, Severity> BY_LABEL = new HashMap<>();

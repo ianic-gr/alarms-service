@@ -1,24 +1,30 @@
 package gr.ianic.config;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import org.eclipse.microprofile.config.inject.ConfigProperties;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
-@ConfigProperties(prefix = "smartville")
 public class AuthConfig {
-    @ConfigProperty(name = "auth.url")
-    public String authUrl;
 
-    @ConfigProperty(name = "auth.client-id")
-    public String clientId;
+    @ConfigProperty(name = "smartville.auth.url")
+    String authUrl;
 
-    @ConfigProperty(name = "auth.client-secret")
-    public String clientSecret;
+    @ConfigProperty(name = "smartville.auth.client-id")
+    String clientId;
 
-    @ConfigProperty(name = "auth.username")
-    public String username;
+    @ConfigProperty(name = "smartville.auth.client-secret")
+    String clientSecret;
 
-    @ConfigProperty(name = "auth.password")
-    public String password;
+    @ConfigProperty(name = "smartville.auth.username")
+    String username;
+
+    @ConfigProperty(name = "smartville.auth.password")
+    String password;
+
+    // Getters (optional)
+    public String getAuthUrl() { return authUrl; }
+    public String getClientId() { return clientId; }
+    public String getClientSecret() { return clientSecret; }
+    public String getUsername() { return username; }
+    public String getPassword() { return password; }
 }

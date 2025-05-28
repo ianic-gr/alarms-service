@@ -5,47 +5,47 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.Date;
 
 /**
- * Represents a warning alarm with properties such as severity, message, timestamp, and count.
- * This class implements the {@link Alarm} interface and provides specific behavior for warning alarms.
+ * Represents a critical alarm with properties such as severity, message, timestamp, and count.
+ * This class implements the {@link Alarm} interface and provides specific behavior for critical alarms.
  */
-public class Warning implements Alarm {
+public class Critical implements Alarm {
 
-    private Severity severity; // The severity level of the warning
-    private String message; // The message associated with the warning
-    private Long datetime; // The timestamp of the warning
-    private Integer count; // The count of occurrences for the warning
-    private String key; // The key associated with the warning
+    private Severity severity; // The severity level of the alarm
+    private String message; // The message associated with the alarm
+    private Long datetime; // The timestamp of the alarm
+    private Integer count; // The count of occurrences for the alarm
+    private String key; // The key associated with the alarm
 
     /**
      * Default constructor initializes the count to 0 and sets the timestamp to the current time.
      */
-    public Warning() {
-        count = 0;
-        datetime = new Date().getTime();
+    public Critical() {
+        this.count = 0;
+        this.datetime = new Date().getTime();
     }
 
     /**
-     * Constructs a warning with the specified severity and message.
+     * Constructs a critical alarm with the specified severity and message.
      * The timestamp is set to the current time, and the count is initialized to 0.
      *
-     * @param message  The message associated with the warning.
+     * @param message  The message associated with the alarm.
      */
-    public Warning(String message) {
-        this.severity = Severity.WARNING;
+    public Critical(String message) {
+        this.severity = Severity.CRITICAL;
         this.message = message;
         this.datetime = new Date().getTime();
         this.count = 0;
     }
 
     /**
-     * Constructs a warning with the specified severity, message, and timestamp.
+     * Constructs a critical alarm with the specified severity, message, and timestamp.
      * The count is initialized to 0.
      *
-     * @param message  The message associated with the warning.
-     * @param datetime The timestamp of the warning.
+     * @param message  The message associated with the alarm.
+     * @param datetime The timestamp of the alarm.
      */
-    public Warning(String message, Long datetime) {
-        this.severity = Severity.WARNING;
+    public Critical(String message, Long datetime) {
+        this.severity = Severity.CRITICAL;
         this.message = message;
         this.datetime = datetime;
         this.count = 0;
@@ -93,7 +93,7 @@ public class Warning implements Alarm {
 
     @Override
     public String getTopic() {
-        return "warning-alarms"; // The Kafka topic for warning alarms
+        return "critical-alarms"; // The Kafka topic for critical alarms
     }
 
     @Override
@@ -107,9 +107,9 @@ public class Warning implements Alarm {
     }
 
     /**
-     * Returns a JSON representation of the warning.
+     * Returns a JSON representation of the critical alarm.
      *
-     * @return A JSON string representing the warning.
+     * @return A JSON string representing the critical alarm.
      * @throws RuntimeException If JSON serialization fails.
      */
     @Override
@@ -117,7 +117,7 @@ public class Warning implements Alarm {
         try {
             return mapper.writeValueAsString(this);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to serialize Warning to JSON", e);
+            throw new RuntimeException("Failed to serialize Critical to JSON", e);
         }
     }
 }

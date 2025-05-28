@@ -17,6 +17,7 @@ public interface RulesDao {
      * @param rule The rule to insert.
      */
     @Insert
+    @StatementAttributes(consistencyLevel = "QUORUM")
     void insert(Rule rule);
 
     /**
@@ -25,6 +26,7 @@ public interface RulesDao {
      * @param rule The rule to update.
      */
     @Update
+    @StatementAttributes(consistencyLevel = "QUORUM")
     void update(Rule rule);
 
     /**
@@ -33,6 +35,7 @@ public interface RulesDao {
      * @param rule The rule to delete.
      */
     @Delete
+    @StatementAttributes(consistencyLevel = "QUORUM")
     void delete(Rule rule);
 
     /**
@@ -43,6 +46,7 @@ public interface RulesDao {
      * @return A {@link PagingIterable} containing the rules matching the tenant and mode.
      */
     @Query("SELECT * FROM rules WHERE mode = :mode and tenant = :tenant")
+    @StatementAttributes(consistencyLevel = "QUORUM")
     PagingIterable<Rule> getByTenantAndMode(String tenant, String mode);
 
     /**
@@ -52,5 +56,6 @@ public interface RulesDao {
      * @return A {@link PagingIterable} containing the rules matching the mode.
      */
     @Query("SELECT * FROM rules WHERE mode = :mode ALLOW FILTERING")
+    @StatementAttributes(consistencyLevel = "QUORUM")
     PagingIterable<Rule> getByMode(String mode);
 }

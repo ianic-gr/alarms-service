@@ -3,9 +3,13 @@ package gr.ianic.model.measurements;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import org.kie.api.definition.type.Role;
+
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 
 @Role(Role.Type.EVENT)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -93,9 +97,27 @@ public class ScadaMeasurement {
         this.qualityCode = qualityCode;
     }
 
+    /**
+     * Converts the `time` string to epoch milliseconds.
+     * Assumes ISO-8601 format (e.g., "2023-10-05T14:30:00Z").
+     * Returns -1 if parsing fails.
+     */
+    public long getTimestamp() {
+        try {
+            return Instant.parse(time).toEpochMilli();
+        } catch (DateTimeParseException e) {
+            System.err.println("Failed to parse time: " + time);
+            return -1L;
+        }
+    }
+
     @Override
-    @SneakyThrows
     public String toString() {
-        return mapper.writeValueAsString(this);
+        try {
+            return new ObjectMapper().writeValueAsString(this);
+        } catch (JsonProcessingException e) {
+            // Fallback to manual JSON construction if serialization fails
+            return "{\"error\":\"Failed to serialize ScadaMeasurement\"}";
+        }
     }
 }

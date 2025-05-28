@@ -5,47 +5,45 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.Date;
 
 /**
- * Represents a warning alarm with properties such as severity, message, timestamp, and count.
- * This class implements the {@link Alarm} interface and provides specific behavior for warning alarms.
+ * Represents an informational alarm with properties such as severity, message, timestamp, and count.
+ * This class implements the {@link Alarm} interface and provides specific behavior for info-level alarms.
  */
-public class Warning implements Alarm {
+public class Info implements Alarm {
 
-    private Severity severity; // The severity level of the warning
-    private String message; // The message associated with the warning
-    private Long datetime; // The timestamp of the warning
-    private Integer count; // The count of occurrences for the warning
-    private String key; // The key associated with the warning
+    private Severity severity; // The severity level of the info message
+    private String message;    // The message associated with the info
+    private Long datetime;     // The timestamp of the info
+    private Integer count;     // The count of occurrences
+    private String key;        // The key associated with the info
 
     /**
      * Default constructor initializes the count to 0 and sets the timestamp to the current time.
      */
-    public Warning() {
-        count = 0;
-        datetime = new Date().getTime();
+    public Info() {
+        this.count = 0;
+        this.datetime = new Date().getTime();
     }
 
     /**
-     * Constructs a warning with the specified severity and message.
-     * The timestamp is set to the current time, and the count is initialized to 0.
+     * Constructs an informational alarm with the specified severity and message.
      *
-     * @param message  The message associated with the warning.
+     * @param message  The message associated with the info.
      */
-    public Warning(String message) {
-        this.severity = Severity.WARNING;
+    public Info(String message) {
+        this.severity = Severity.INFO;
         this.message = message;
         this.datetime = new Date().getTime();
         this.count = 0;
     }
 
     /**
-     * Constructs a warning with the specified severity, message, and timestamp.
-     * The count is initialized to 0.
+     * Constructs an informational alarm with the specified severity, message, and timestamp.
      *
-     * @param message  The message associated with the warning.
-     * @param datetime The timestamp of the warning.
+     * @param message  The message associated with the info.
+     * @param datetime The timestamp of the info.
      */
-    public Warning(String message, Long datetime) {
-        this.severity = Severity.WARNING;
+    public Info(String message, Long datetime) {
+        this.severity = Severity.INFO;
         this.message = message;
         this.datetime = datetime;
         this.count = 0;
@@ -93,7 +91,7 @@ public class Warning implements Alarm {
 
     @Override
     public String getTopic() {
-        return "warning-alarms"; // The Kafka topic for warning alarms
+        return "info-alarms"; // The Kafka topic for info alarms
     }
 
     @Override
@@ -107,9 +105,9 @@ public class Warning implements Alarm {
     }
 
     /**
-     * Returns a JSON representation of the warning.
+     * Returns a JSON representation of the info.
      *
-     * @return A JSON string representing the warning.
+     * @return A JSON string representing the info.
      * @throws RuntimeException If JSON serialization fails.
      */
     @Override
@@ -117,7 +115,7 @@ public class Warning implements Alarm {
         try {
             return mapper.writeValueAsString(this);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to serialize Warning to JSON", e);
+            throw new RuntimeException("Failed to serialize Info to JSON", e);
         }
     }
 }

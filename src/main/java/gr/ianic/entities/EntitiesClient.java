@@ -126,15 +126,15 @@ public class EntitiesClient {
         // Prepare URL-encoded form data for token request
         String formData = String.format(
                 "grant_type=password&username=%s&password=%s&client_id=%s&client_secret=%s",
-                URLEncoder.encode(authConfig.username, StandardCharsets.UTF_8),
-                URLEncoder.encode(authConfig.password, StandardCharsets.UTF_8),
-                URLEncoder.encode(authConfig.clientId, StandardCharsets.UTF_8),
-                URLEncoder.encode(authConfig.clientSecret, StandardCharsets.UTF_8)
+                URLEncoder.encode(authConfig.getUsername(), StandardCharsets.UTF_8),
+                URLEncoder.encode(authConfig.getPassword(), StandardCharsets.UTF_8),
+                URLEncoder.encode(authConfig.getClientId(), StandardCharsets.UTF_8),
+                URLEncoder.encode(authConfig.getClientSecret(), StandardCharsets.UTF_8)
         );
 
         // Build HTTP request
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(authConfig.authUrl))
+                .uri(URI.create(authConfig.getAuthUrl()))
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(HttpRequest.BodyPublishers.ofString(formData))
                 .build();
